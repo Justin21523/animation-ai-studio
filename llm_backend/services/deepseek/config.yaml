@@ -1,0 +1,91 @@
+# Qwen2.5-14B vLLM Service Configuration
+# For reasoning tasks on RTX 5080 16GB VRAM
+# Using Qwen2.5-14B-Instruct (better than DeepSeek distilled models for 16GB)
+
+# Model Configuration
+model:
+  # Model path
+  path: "Qwen/Qwen2.5-14B-Instruct"
+  # Alternative: Use local model from AI warehouse
+  # path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-14B-Instruct"
+
+  # Served model name
+  served_name: "qwen-14b"
+
+  # Trust remote code
+  trust_remote_code: true
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8001
+  api_key: null
+  served_model_name: "qwen-14b"
+
+# GPU Configuration
+# Optimized for single RTX 5080 16GB
+gpu:
+  # Conservative memory usage (~12GB)
+  memory_utilization: 0.85
+
+  # Single GPU
+  tensor_parallel_size: 1
+
+  # Pipeline parallelism
+  pipeline_parallel_size: 1
+
+  # Data type
+  dtype: "auto"
+
+  # No quantization needed for 14B on 16GB
+  quantization: null
+
+# Performance Configuration
+performance:
+  # Qwen2.5-14B context length
+  max_model_len: 32768  # 32K tokens
+
+  # Batch tokens
+  max_num_batched_tokens: 8192
+
+  # Concurrent sequences
+  max_num_seqs: 256
+
+  # Block size
+  block_size: 16
+
+  # Swap space
+  swap_space: 4
+
+# Caching Configuration
+cache:
+  # Prefix caching very useful for long context
+  enable_prefix_caching: true
+
+  # Auto cache dtype
+  cache_dtype: "auto"
+
+# Logging
+logging:
+  disable_log_stats: false
+  disable_log_requests: false
+  log_level: "info"
+
+# Advanced Options
+advanced:
+  # No chunked prefill needed for 32K
+  enable_chunked_prefill: false
+
+  # Enforce eager mode
+  enforce_eager: false
+
+  # Max context for CUDA graph
+  max_context_len_to_capture: 8192
+
+# Environment Variables Override:
+# - MODEL_PATH
+# - TENSOR_PARALLEL_SIZE
+# - GPU_MEMORY_UTILIZATION
+# - MAX_MODEL_LEN
+# - QUANTIZATION
+# - PORT

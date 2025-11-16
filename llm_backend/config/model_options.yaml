@@ -1,0 +1,155 @@
+# Model Options for RTX 5080 16GB VRAM
+# Choose between small models (fast) or quantized large models (powerful but slower)
+
+# =============================================================================
+# Hardware Constraints
+# =============================================================================
+hardware_limits:
+  vram_gb: 16
+  recommendation: "Use 7B-14B models for best performance, or INT4 quantized 72B for more capability"
+
+# =============================================================================
+# Option 1: Small Models (RECOMMENDED for 16GB)
+# Fast inference, good quality, fits comfortably in VRAM
+# =============================================================================
+option_1_small_models:
+  name: "Small Models (7B-14B)"
+  description: "Best performance/quality balance for 16GB VRAM"
+  vram_usage: "12-14GB per model"
+  inference_speed: "Fast (~30-50 tokens/sec)"
+
+  models:
+    multimodal:
+      model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+      local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-VL-7B-Instruct"
+      served_name: "qwen-vl-7b"
+      port: 8000
+      vram_est: "~14GB"
+      capabilities: ["vision", "chat", "multimodal"]
+      context_length: 32768
+
+    reasoning:
+      model_id: "Qwen/Qwen2.5-14B-Instruct"
+      local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-14B-Instruct"
+      served_name: "qwen-14b"
+      port: 8001
+      vram_est: "~12GB"
+      capabilities: ["chat", "reasoning"]
+      context_length: 32768
+
+    code:
+      model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
+      local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-Coder-7B-Instruct"
+      served_name: "qwen-coder-7b"
+      port: 8002
+      vram_est: "~14GB"
+      capabilities: ["code", "chat"]
+      context_length: 32768
+
+  deployment_strategy: "sequential"
+  notes: |
+    - Load one model at a time based on task
+    - Fast switching (10-30 seconds)
+    - Best for interactive use
+
+# =============================================================================
+# Option 2: Quantized Large Models (INT4/AWQ)
+# More powerful but slower, uses full VRAM
+# =============================================================================
+option_2_quantized_large:
+  name: "Quantized 72B Models (INT4)"
+  description: "Maximum capability with INT4 quantization"
+  vram_usage: "~16GB (full VRAM)"
+  inference_speed: "Slower (~10-20 tokens/sec)"
+
+  models:
+    multimodal:
+      model_id: "Qwen/Qwen2.5-VL-72B-Instruct-GPTQ-Int4"
+      local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-VL-72B-Instruct-GPTQ-Int4"
+      served_name: "qwen-vl-72b-int4"
+      port: 8000
+      vram_est: "~16GB"
+      quantization: "gptq-int4"
+      capabilities: ["vision", "chat", "multimodal"]
+      context_length: 32768
+
+    reasoning:
+      model_id: "Qwen/Qwen2.5-72B-Instruct-AWQ"
+      local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-72B-Instruct-AWQ"
+      served_name: "qwen-72b-awq"
+      port: 8001
+      vram_est: "~16GB"
+      quantization: "awq"
+      capabilities: ["chat", "reasoning"]
+      context_length: 32768
+
+  deployment_strategy: "sequential"
+  notes: |
+    - Much slower inference than 7B models
+    - Better quality for complex tasks
+    - Recommended for batch processing, not interactive
+
+# =============================================================================
+# Option 3: Hybrid (Small + CPU Offloading)
+# Use GPU for small fast model, CPU for large reasoning
+# =============================================================================
+option_3_hybrid:
+  name: "Hybrid GPU/CPU"
+  description: "GPU for fast tasks, CPU for complex reasoning"
+  vram_usage: "~14GB (GPU) + RAM (CPU)"
+  inference_speed: "Mixed (GPU: fast, CPU: slow)"
+
+  gpu_models:
+    - model_id: "Qwen/Qwen2.5-VL-7B-Instruct"
+      use: "Quick multimodal tasks"
+      device: "cuda"
+
+    - model_id: "Qwen/Qwen2.5-Coder-7B-Instruct"
+      use: "Code generation"
+      device: "cuda"
+
+  cpu_models:
+    - model_id: "Qwen/Qwen2.5-72B-Instruct"
+      use: "Complex reasoning (when GPU idle)"
+      device: "cpu"
+      backend: "llama.cpp"
+      threads: 32  # Full R9 9950X
+
+  notes: |
+    - Best of both worlds
+    - Fast response for common tasks
+    - CPU handles complex tasks in background
+    - Requires llama.cpp for CPU inference
+
+# =============================================================================
+# Recommended Configuration
+# =============================================================================
+recommended:
+  choice: "option_1_small_models"
+  reason: |
+    For RTX 5080 16GB, small models (7B-14B) provide:
+    - Fast interactive performance
+    - Good quality for most tasks
+    - Ability to run multiple models sequentially
+    - Comfortable VRAM headroom (prevents OOM)
+
+  alternative: |
+    If you need maximum quality and can tolerate slower speed,
+    use Option 2 (quantized 72B) for critical tasks only.
+
+# =============================================================================
+# Model Switching Strategy
+# =============================================================================
+switching:
+  method: "dynamic_loading"
+  description: |
+    Load/unload models based on task requirements:
+    1. Receive task from user
+    2. Determine required model
+    3. Unload current model if different
+    4. Load required model
+    5. Execute task
+    6. Keep in memory for next task
+
+  switching_time: "10-30 seconds"
+  optimization: "Keep last-used model in memory"

@@ -1,0 +1,175 @@
+# vLLM Global Configuration
+# Optimized for RTX 5080 16GB VRAM with PyTorch 2.7.0 + CUDA 12.8
+
+# =============================================================================
+# PyTorch Environment (CRITICAL - DO NOT MODIFY)
+# =============================================================================
+pytorch:
+  version: "2.7.0"
+  cuda_version: "12.8"
+  conda_env: "ai_env"
+
+  # CRITICAL: Use PyTorch native SDPA, NEVER xformers
+  attention_backend: "sdpa"  # PyTorch Scaled Dot Product Attention
+  disable_xformers: true  # Absolutely forbidden
+
+  # Environment variables
+  env_vars:
+    PYTORCH_CUDA_ALLOC_CONF: "max_split_size_mb:512"
+    CUDA_VISIBLE_DEVICES: "0"  # Single RTX 5080
+
+    # CRITICAL: Disable xformers
+    VLLM_ATTENTION_BACKEND: "TORCH_SDPA"  # Force PyTorch SDPA
+    XFORMERS_DISABLED: "1"
+
+# =============================================================================
+# Hardware Configuration
+# =============================================================================
+hardware:
+  gpu:
+    model: "RTX 5080"
+    vram_gb: 16
+    count: 1
+    compute_capability: "8.9"  # Ada Lovelace
+
+  cpu:
+    model: "AMD Ryzen 9 9950X"
+    cores: 16
+    threads: 32
+
+  ram:
+    total_gb: 64
+
+# =============================================================================
+# vLLM Global Settings
+# =============================================================================
+vllm:
+  # Attention backend (MUST be PyTorch SDPA)
+  attention_backend: "torch_sdpa"  # NOT xformers
+
+  # Memory optimization
+  gpu_memory_utilization: 0.90  # Use 90% of 16GB = ~14.4GB
+  max_parallel_loading_workers: 4
+
+  # KV Cache settings
+  kv_cache_dtype: "auto"  # Use same dtype as model
+
+  # Block manager
+  block_size: 16
+  swap_space: 4  # 4GB CPU swap
+
+  # Scheduling
+  max_num_seqs: 256
+  max_num_batched_tokens: 8192
+
+  # Enable optimizations
+  enable_prefix_caching: true
+  enable_chunked_prefill: false  # Not needed for 7B/14B models
+
+# =============================================================================
+# Quantization Options (充分利用16GB VRAM)
+# =============================================================================
+quantization:
+  # For 7B/14B models: No quantization (fits easily)
+  small_models:
+    enabled: false
+    reason: "7B/14B models fit in 16GB without quantization"
+
+  # For larger models: Use AWQ or GPTQ
+  large_models:
+    # AWQ (Recommended for inference)
+    awq:
+      enabled: true
+      bits: 4  # INT4 quantization
+      group_size: 128
+      desc: "Activation-aware Weight Quantization"
+      vram_reduction: "~75%"  # 72B becomes ~18GB -> fits in 16GB
+
+    # GPTQ (Alternative)
+    gptq:
+      enabled: true
+      bits: 4
+      group_size: 128
+      desc: "Generalized Post-Training Quantization"
+      vram_reduction: "~75%"
+
+    # FP8 (Not supported by all models)
+    fp8:
+      enabled: false
+      reason: "Limited model support, AWQ/GPTQ better for RTX 5080"
+
+# =============================================================================
+# Model Presets (選擇使用哪些模型)
+# =============================================================================
+model_presets:
+  # Preset 1: Small models (No quantization, fast)
+  preset_small:
+    name: "Small Models (7B/14B)"
+    vram_per_model: "12-14GB"
+    quantization: false
+    models:
+      - "Qwen/Qwen2.5-VL-7B-Instruct"
+      - "Qwen/Qwen2.5-14B-Instruct"
+      - "Qwen/Qwen2.5-Coder-7B-Instruct"
+
+  # Preset 2: Quantized large models (AWQ, powerful but slower)
+  preset_quantized:
+    name: "Quantized 72B Models (AWQ)"
+    vram_per_model: "~16GB"
+    quantization: "awq"
+    models:
+      - "Qwen/Qwen2.5-VL-72B-Instruct-AWQ"
+      - "Qwen/Qwen2.5-72B-Instruct-AWQ"
+
+  # Recommended: Use Preset 1 (small models)
+  recommended: "preset_small"
+
+# =============================================================================
+# Cache Paths (統一管理)
+# =============================================================================
+cache:
+  # Shared cache to avoid duplication
+  huggingface: "/mnt/c/AI_LLM_projects/ai_warehouse/cache/huggingface"
+  vllm: "/mnt/c/AI_LLM_projects/ai_warehouse/cache/vllm"
+  torch: "/mnt/c/AI_LLM_projects/ai_warehouse/cache/torch"
+
+# =============================================================================
+# Performance Tuning
+# =============================================================================
+performance:
+  # Batch processing
+  dynamic_batching: true
+  max_batch_size: 32
+
+  # Continuous batching (vLLM feature)
+  continuous_batching: true
+
+  # CUDA graph optimization
+  enforce_eager: false  # Use CUDA graphs for speed
+  max_context_len_to_capture: 8192
+
+  # Memory defragmentation
+  enable_memory_defrag: true
+
+# =============================================================================
+# Logging and Monitoring
+# =============================================================================
+logging:
+  level: "INFO"
+  disable_log_stats: false
+  disable_log_requests: false
+  log_dir: "/mnt/c/AI_LLM_projects/animation-ai-studio/logs/vllm"
+
+# =============================================================================
+# Safety Limits (防止OOM)
+# =============================================================================
+safety:
+  # Maximum sequence length (防止單個請求占用太多VRAM)
+  max_model_len: 32768  # 32K tokens max
+
+  # OOM protection
+  oom_threshold: 0.95  # Trigger warning at 95% VRAM
+
+  # Request limits
+  max_concurrent_requests: 10
+  request_timeout: 300  # 5 minutes
