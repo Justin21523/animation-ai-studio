@@ -1,0 +1,11 @@
+# Style transfer and artistic effects dependencies
+
+# Neural style transfer
+torchvision>=0.15.0
+
+# Advanced style transfer
+# AdaIN, EbSynth (install separately)
+
+# Image filters and effects
+pillow>=10.0.0
+scikit-image>=0.21.0

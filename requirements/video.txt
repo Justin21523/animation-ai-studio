@@ -1,0 +1,14 @@
+# Video analysis and processing dependencies
+
+# Video I/O
+ffmpeg-python>=0.2.0
+moviepy>=1.0.3
+
+# Scene detection
+scenedetect[opencv]>=0.6.2
+
+# Optical flow and motion
+opencv-contrib-python>=4.8.0
+
+# Frame interpolation
+# RIFE and other interpolation models (install separately)
