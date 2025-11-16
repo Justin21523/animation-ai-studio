@@ -6,3 +6,6 @@
 -r audio.txt
 -r enhancement.txt
 -r style.txt
+-r generation.txt
+-r tts.txt
+-r multimodal.txt

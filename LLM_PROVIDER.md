@@ -44,6 +44,20 @@ This project **shares data sources** with the LoRA pipeline project (same film d
    - Video synthesis and editing
    - Multi-modal fusion (audio + visual)
    - Temporal coherence enhancement
+
+5. Animation-Style Image Generation
+   - Text-to-image generation with animation style
+   - Character generation using trained LoRAs
+   - Background generation and composition
+   - Style-consistent image synthesis
+   - ControlNet-guided generation (pose, depth, canny)
+
+6. Voice Synthesis & Audio Generation
+   - Text-to-Speech (TTS) with character voices
+   - Voice cloning from film audio
+   - Emotion-controlled speech synthesis
+   - Lip-sync generation for animated characters
+   - Music and sound effect generation
 ```
 
 ### Directory Structure
@@ -63,6 +77,14 @@ scripts/
 │   ├── extraction/    # Frame/audio extraction
 │   ├── enhancement/   # Super-resolution, denoising, color grading
 │   └── synthesis/     # Interpolation, video generation
+├── generation/        # AI content generation
+│   ├── image/         # Animation-style image generation (SD, SDXL + LoRA)
+│   ├── video/         # Video generation (AnimateDiff, etc.)
+│   └── audio/         # Music and SFX generation
+├── synthesis/         # Voice and speech synthesis
+│   ├── tts/           # Text-to-speech engines
+│   ├── voice_cloning/ # Voice cloning and mimicking
+│   └── lip_sync/      # Lip-sync generation
 └── applications/      # End-user applications
     ├── style_transfer/ # Neural style transfer
     ├── interpolation/  # Frame rate conversion
@@ -71,11 +93,11 @@ scripts/
 configs/               # Configuration files
 data/
 ├── films/             # Film metadata (shared with LoRA pipeline)
-│   ├── luca/          # Character info, scene descriptions
+│   ├── luca/          # Character info, scene descriptions, voice samples
 │   ├── coco/
 │   └── ...
-└── prompts/           # Analysis prompts and templates
-outputs/               # Analysis results and processed media
+└── prompts/           # Generation prompts and templates
+outputs/               # Analysis results and generated content
 requirements/          # Modular dependencies
 ```
 
@@ -175,6 +197,85 @@ python scripts/processing/enhancement/color_grading.py \
   --strength 0.8
 ```
 
+### 5. Animation-Style Image Generation Workflow
+```bash
+# Generate character images with trained LoRA
+python scripts/generation/image/generate_with_lora.py \
+  --base-model /path/to/sdxl_base.safetensors \
+  --lora-path /path/to/character_lora.safetensors \
+  --prompt "luca, a boy with brown hair, smiling, pixar style, 3d animation" \
+  --output outputs/generation/luca_generated \
+  --num-images 10 \
+  --lora-weight 0.8
+
+# ControlNet-guided generation (pose control)
+python scripts/generation/image/controlnet_generation.py \
+  --base-model /path/to/sdxl_base.safetensors \
+  --controlnet openpose \
+  --control-image /path/to/pose_reference.jpg \
+  --prompt "alberto, italian boy, green eyes, pixar style" \
+  --output outputs/generation/alberto_pose_controlled
+
+# Background generation
+python scripts/generation/image/background_generator.py \
+  --style "italian seaside town, colorful buildings, summer, pixar style" \
+  --background-lora /path/to/background_lora.safetensors \
+  --output outputs/generation/backgrounds \
+  --resolution 1024x1024
+```
+
+### 6. Voice Synthesis Workflow
+```bash
+# Extract character voice samples from film
+python scripts/synthesis/voice_cloning/extract_voice_samples.py \
+  --video /path/to/film.mp4 \
+  --transcript data/films/luca/transcript.json \
+  --character "Luca" \
+  --output data/films/luca/voice_samples
+
+# Clone character voice
+python scripts/synthesis/voice_cloning/train_voice_model.py \
+  --voice-samples data/films/luca/voice_samples \
+  --character-name "Luca" \
+  --output models/voices/luca_voice.pth
+
+# Generate speech with cloned voice
+python scripts/synthesis/tts/generate_speech.py \
+  --text "Ciao! My name is Luca." \
+  --voice-model models/voices/luca_voice.pth \
+  --emotion happy \
+  --output outputs/tts/luca_speech.wav
+
+# Generate lip-sync animation
+python scripts/synthesis/lip_sync/generate_lip_sync.py \
+  --audio outputs/tts/luca_speech.wav \
+  --character-image /path/to/luca_image.jpg \
+  --output outputs/lip_sync/luca_talking.mp4
+```
+
+### 7. Multimodal Analysis Workflow (Audio-Visual Sync)
+```bash
+# Analyze lip movements and speech timing
+python scripts/analysis/multimodal/lip_speech_analyzer.py \
+  --video /path/to/film.mp4 \
+  --output outputs/analysis/lip_sync_analysis.json \
+  --detect-visemes \
+  --extract-timing
+
+# Action recognition with audio context
+python scripts/analysis/multimodal/action_recognition.py \
+  --video /path/to/film.mp4 \
+  --audio-features outputs/analysis/film_name/audio_features.npy \
+  --output outputs/analysis/actions_timeline.json
+
+# Emotion analysis (audio + facial expression)
+python scripts/analysis/multimodal/emotion_fusion.py \
+  --video /path/to/film.mp4 \
+  --audio /path/to/audio.wav \
+  --output outputs/analysis/emotion_multimodal.json \
+  --fusion-method attention
+```
+
 ## Data Sources
 
 ### Shared with LoRA Pipeline
@@ -215,6 +316,21 @@ python scripts/processing/enhancement/color_grading.py \
 ### Frame Interpolation
 - **RIFE**: Real-time intermediate flow estimation
 - **IFRNet**: Intermediate frame synthesis
+
+### Image Generation
+- **Stable Diffusion XL**: High-quality image generation
+- **ControlNet**: Pose, depth, canny edge control
+- **LoRA**: Character and style adapters (from LoRA pipeline)
+
+### Voice Synthesis
+- **Coqui TTS**: Multi-speaker text-to-speech
+- **Voice Cloning**: Custom voice models from film audio
+- **Wav2Lip**: Lip-sync generation
+
+### Multimodal Analysis
+- **MediaPipe**: Facial landmark detection
+- **Viseme Detection**: Lip shape analysis
+- **Action Recognition**: Video understanding with audio context
 
 ## Development Principles
 
