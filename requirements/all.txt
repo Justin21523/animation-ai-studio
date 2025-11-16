@@ -1,0 +1,8 @@
+# Complete dependency set for Animation AI Studio
+# Install with: pip install -r requirements/all.txt
+
+-r core.txt
+-r video.txt
+-r audio.txt
+-r enhancement.txt
+-r style.txt

@@ -1,0 +1,32 @@
+# Core dependencies for Animation AI Studio
+# Python 3.10+
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Configuration
+omegaconf>=2.3.0
+pyyaml>=6.0
+
+# Logging and utilities
+loguru>=0.7.0
+tqdm>=4.65.0
+colorama>=0.4.6
+
+# Image processing
+opencv-python>=4.8.0
+pillow>=10.0.0
+imageio>=2.31.0
+scikit-image>=0.21.0
+
+# Numerical computing
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Data handling
+pandas>=2.0.0
+
+# File I/O
+h5py>=3.9.0
