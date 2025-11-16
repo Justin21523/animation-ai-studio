@@ -1,0 +1,16 @@
+# Image and video generation dependencies
+
+# Stable Diffusion
+diffusers>=0.25.0
+transformers>=4.30.0
+accelerate>=0.24.0
+
+# ControlNet and LoRA
+controlnet-aux>=0.0.7
+peft>=0.7.0
+
+# Video generation
+# AnimateDiff, SVD (install separately)
+
+# Prompt engineering
+compel>=2.0.0
