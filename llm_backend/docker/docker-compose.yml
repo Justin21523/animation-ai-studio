@@ -1,0 +1,311 @@
+version: '3.8'
+
+# Docker Compose for LLM Backend
+# Optimized for RTX 5080 16GB VRAM (Single GPU)
+# PyTorch 2.7.0 + CUDA 12.8 + Native SDPA (NO xformers)
+
+services:
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: llm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ==========================================================================
+  # API Gateway
+  # ==========================================================================
+  gateway:
+    build:
+      context: ../..
+      dockerfile: llm_backend/docker/gateway.Dockerfile
+    container_name: llm-gateway
+    ports:
+      - "7000:7000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=INFO
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ../../logs:/app/logs
+
+  # ==========================================================================
+  # Qwen2.5-VL-7B Service (Multimodal)
+  # Port 8000
+  # ==========================================================================
+  qwen-vl:
+    build:
+      context: ../..
+      dockerfile: llm_backend/docker/vllm.Dockerfile
+    container_name: llm-qwen-vl
+    ports:
+      - "8000:8000"
+    environment:
+      # Model configuration
+      - MODEL_PATH=Qwen/Qwen2.5-VL-7B-Instruct
+      - PORT=8000
+      - SERVED_MODEL_NAME=qwen-vl-7b
+
+      # CRITICAL: PyTorch SDPA, NO xformers
+      - VLLM_ATTENTION_BACKEND=TORCH_SDPA
+      - XFORMERS_DISABLED=1
+      - VLLM_USE_TRITON_FLASH_ATTN=0
+
+      # GPU configuration (RTX 5080 16GB)
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_MEMORY_UTILIZATION=0.85
+      - TENSOR_PARALLEL_SIZE=1
+
+      # PyTorch memory optimization
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512,expandable_segments:True
+
+      # Performance
+      - MAX_MODEL_LEN=32768
+      - MAX_NUM_BATCHED_TOKENS=8192
+      - MAX_NUM_SEQS=256
+      - ENABLE_PREFIX_CACHING=true
+
+      # Cache paths
+      - HF_HOME=/models/cache/huggingface
+      - TRANSFORMERS_CACHE=/models/cache/huggingface
+      - VLLM_CACHE_ROOT=/models/cache/vllm
+    volumes:
+      # Mount AI warehouse for models and cache
+      - /mnt/c/AI_LLM_projects/ai_warehouse:/models
+      - /dev/shm:/dev/shm  # Shared memory for IPC
+      - ../../logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']  # RTX 5080
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # Model loading takes time
+    command: bash /app/llm_backend/services/qwen_vl/start.sh
+
+  # ==========================================================================
+  # Qwen2.5-14B Service (Reasoning)
+  # Port 8001
+  # NOTE: Load this OR qwen-vl, not both (16GB VRAM limit)
+  # ==========================================================================
+  qwen-14b:
+    build:
+      context: ../..
+      dockerfile: llm_backend/docker/vllm.Dockerfile
+    container_name: llm-qwen-14b
+    ports:
+      - "8001:8001"
+    environment:
+      # Model configuration
+      - MODEL_PATH=Qwen/Qwen2.5-14B-Instruct
+      - PORT=8001
+      - SERVED_MODEL_NAME=qwen-14b
+
+      # CRITICAL: PyTorch SDPA, NO xformers
+      - VLLM_ATTENTION_BACKEND=TORCH_SDPA
+      - XFORMERS_DISABLED=1
+      - VLLM_USE_TRITON_FLASH_ATTN=0
+
+      # GPU configuration (RTX 5080 16GB)
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_MEMORY_UTILIZATION=0.85
+      - TENSOR_PARALLEL_SIZE=1
+
+      # PyTorch memory optimization
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512,expandable_segments:True
+
+      # Performance
+      - MAX_MODEL_LEN=32768
+      - MAX_NUM_BATCHED_TOKENS=8192
+      - MAX_NUM_SEQS=256
+      - ENABLE_PREFIX_CACHING=true
+
+      # Cache paths
+      - HF_HOME=/models/cache/huggingface
+      - TRANSFORMERS_CACHE=/models/cache/huggingface
+      - VLLM_CACHE_ROOT=/models/cache/vllm
+    volumes:
+      - /mnt/c/AI_LLM_projects/ai_warehouse:/models
+      - /dev/shm:/dev/shm
+      - ../../logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']  # RTX 5080
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    command: bash /app/llm_backend/services/deepseek/start.sh
+    # IMPORTANT: Comment out to prevent auto-start
+    # Only start one model at a time manually
+    profiles:
+      - manual
+
+  # ==========================================================================
+  # Qwen2.5-Coder-7B Service (Code Generation)
+  # Port 8002
+  # NOTE: Load this OR qwen-vl, not both (16GB VRAM limit)
+  # ==========================================================================
+  qwen-coder:
+    build:
+      context: ../..
+      dockerfile: llm_backend/docker/vllm.Dockerfile
+    container_name: llm-qwen-coder
+    ports:
+      - "8002:8002"
+    environment:
+      # Model configuration
+      - MODEL_PATH=Qwen/Qwen2.5-Coder-7B-Instruct
+      - PORT=8002
+      - SERVED_MODEL_NAME=qwen-coder-7b
+
+      # CRITICAL: PyTorch SDPA, NO xformers
+      - VLLM_ATTENTION_BACKEND=TORCH_SDPA
+      - XFORMERS_DISABLED=1
+      - VLLM_USE_TRITON_FLASH_ATTN=0
+
+      # GPU configuration (RTX 5080 16GB)
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_MEMORY_UTILIZATION=0.85
+      - TENSOR_PARALLEL_SIZE=1
+
+      # PyTorch memory optimization
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512,expandable_segments:True
+
+      # Performance
+      - MAX_MODEL_LEN=32768
+      - MAX_NUM_BATCHED_TOKENS=8192
+      - MAX_NUM_SEQS=256
+      - ENABLE_PREFIX_CACHING=true
+
+      # Cache paths
+      - HF_HOME=/models/cache/huggingface
+      - TRANSFORMERS_CACHE=/models/cache/huggingface
+      - VLLM_CACHE_ROOT=/models/cache/vllm
+    volumes:
+      - /mnt/c/AI_LLM_projects/ai_warehouse:/models
+      - /dev/shm:/dev/shm
+      - ../../logs:/app/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ['0']  # RTX 5080
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    command: bash /app/llm_backend/services/qwen_coder/start.sh
+    # IMPORTANT: Comment out to prevent auto-start
+    profiles:
+      - manual
+
+  # ==========================================================================
+  # Prometheus (Monitoring)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: llm-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    restart: unless-stopped
+    networks:
+      - llm-network
+
+  # ==========================================================================
+  # Grafana (Visualization)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: llm-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - llm-network
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  llm-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

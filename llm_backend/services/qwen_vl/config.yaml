@@ -1,0 +1,131 @@
+# Qwen2.5-VL-7B vLLM Service Configuration
+# Optimized for RTX 5080 16GB VRAM
+# All parameters are adjustable for different deployment scenarios
+
+# Model Configuration
+model:
+  # Model path (HuggingFace model ID or local path from AI warehouse)
+  path: "Qwen/Qwen2.5-VL-7B-Instruct"
+  # Alternative: Use local model from AI warehouse
+  # path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/llm/qwen/Qwen2.5-VL-7B-Instruct"
+
+  # Served model name (used in API requests)
+  served_name: "qwen-vl-7b"
+
+  # Trust remote code (required for Qwen models)
+  trust_remote_code: true
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+  # API configuration
+  api_key: null  # Set if authentication required
+  served_model_name: "qwen-vl-7b"
+
+# GPU Configuration
+# Optimized for single RTX 5080 16GB
+gpu:
+  # GPU memory utilization (0.0 to 1.0)
+  # Conservative for 16GB VRAM (~14GB used, 2GB headroom)
+  memory_utilization: 0.85
+
+  # Tensor parallelism (number of GPUs)
+  # Single GPU only for RTX 5080
+  tensor_parallel_size: 1
+
+  # Pipeline parallelism (not used for single GPU)
+  pipeline_parallel_size: 1
+
+  # Data type
+  # Options: auto, float16, bfloat16, float32
+  dtype: "auto"
+
+  # Quantization
+  # No quantization needed for 7B on 16GB
+  quantization: null
+
+# Performance Configuration
+performance:
+  # Maximum model context length
+  max_model_len: 32768
+
+  # Maximum number of batched tokens
+  max_num_batched_tokens: 8192
+
+  # Maximum number of sequences in a batch
+  max_num_seqs: 256
+
+  # Maximum number of parallel sequences per request
+  max_parallel_loading_workers: null
+
+  # Block size for paged attention
+  block_size: 16
+
+  # Swap space (GB) for CPU offloading
+  swap_space: 4
+
+# Caching Configuration
+cache:
+  # Enable prefix caching (shares KV cache for common prefixes)
+  enable_prefix_caching: true
+
+  # Cache data type
+  cache_dtype: "auto"
+
+# Logging and Monitoring
+logging:
+  # Disable detailed statistics logging
+  disable_log_stats: false
+
+  # Disable request logging
+  disable_log_requests: false
+
+  # Log level
+  log_level: "info"
+
+# Advanced Options
+advanced:
+  # Enable chunked prefill
+  enable_chunked_prefill: false
+
+  # Max number of continuous batching iterations
+  max_num_batched_tokens: 8192
+
+  # Speculative decoding (if supported)
+  speculative_model: null
+
+  # Number of speculative tokens
+  num_speculative_tokens: null
+
+  # Enforce eager mode (disable CUDA graphs)
+  enforce_eager: false
+
+  # Maximum length for CUDA graph
+  max_context_len_to_capture: 8192
+
+# Multimodal Configuration (for Qwen2.5-VL)
+multimodal:
+  # Maximum number of images per request
+  limit_mm_per_prompt:
+    image: 10
+
+  # Image input type
+  # Options: pixel_values, image_features
+  image_input_type: "pixel_values"
+
+  # Image token ID
+  image_token_id: null  # Auto-detect from tokenizer
+
+  # Image input shape (height, width)
+  image_input_shape: null  # Auto-detect
+
+# Environment Variables (can override config)
+# These can be set in docker-compose or shell scripts:
+# - MODEL_PATH
+# - TENSOR_PARALLEL_SIZE
+# - GPU_MEMORY_UTILIZATION
+# - MAX_MODEL_LEN
+# - QUANTIZATION
+# - PORT
