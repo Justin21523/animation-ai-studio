@@ -1,0 +1,145 @@
+# Knowledge Base Configuration
+#
+# Configuration for RAG (Retrieval-Augmented Generation) system
+#
+# Author: Animation AI Studio
+# Date: 2025-11-17
+
+# Paths
+persist_dir: "/mnt/c/AI_LLM_projects/ai_warehouse/rag/knowledge_base"
+cache_dir: "/mnt/c/AI_LLM_projects/ai_warehouse/cache/embeddings"
+
+# Vector Store Configuration
+vector_store:
+  type: "faiss"  # Options: faiss, chroma
+  dimension: 1024  # Qwen2.5 embedding dimension
+  metric: "cosine"  # Options: cosine, l2, ip
+  index_type: "Flat"  # Options: Flat, IVF, HNSW
+
+  # FAISS-specific (for IVF index)
+  nlist: 100  # Number of clusters
+  nprobe: 10  # Number of clusters to search
+
+  # Chroma-specific
+  collection_name: "animation_ai_knowledge"
+
+  # Performance
+  batch_size: 100
+  enable_gpu: false  # Use GPU for FAISS (requires faiss-gpu)
+
+# Embedding Configuration
+embedding:
+  model: "qwen-14b"  # Use Qwen2.5-14B for embeddings
+  dimension: 1024
+  normalize: true  # Normalize embeddings to unit length
+  batch_size: 32
+  max_length: 8192  # Maximum token length
+  use_cache: true  # Cache embeddings to disk
+
+# Document Processing Configuration
+document_processing:
+  # Chunking
+  chunk_size: 512  # Target chunk size (characters)
+  chunk_overlap: 50  # Overlap between chunks
+  min_chunk_size: 100  # Minimum chunk size
+  respect_sentences: true  # Don't split sentences
+  respect_paragraphs: true  # Preserve paragraph boundaries
+
+  # Quality filtering
+  min_quality_score: 0.5  # Minimum document quality
+  filter_duplicates: true
+  duplicate_threshold: 0.95  # Cosine similarity threshold
+
+# Retrieval Configuration
+retrieval:
+  # Search parameters
+  default_top_k: 10  # Number of results to retrieve
+  similarity_threshold: 0.7  # Minimum similarity score
+  max_context_tokens: 4000  # Maximum context for LLM
+
+  # Reranking
+  enable_reranking: true
+  rerank_top_k: 5  # Final results after reranking
+  rerank_method: "llm"  # Options: llm, cross_encoder, bm25
+
+  # Query enhancement
+  enable_query_expansion: false
+  expansion_terms: 3
+
+  # Context
+  include_context: true  # Include neighboring chunks
+  context_window: 1  # Chunks before/after
+
+  # Hybrid search
+  enable_hybrid: false  # Combine dense + sparse retrieval
+  sparse_weight: 0.3  # Weight for sparse retrieval (BM25)
+  dense_weight: 0.7  # Weight for dense retrieval (semantic)
+
+# Maintenance Configuration
+maintenance:
+  auto_save: true
+  save_interval: 100  # Save every N documents
+  backup_enabled: true
+  backup_interval_hours: 24
+  max_backups: 7  # Keep last N backups
+
+# LLM Integration
+llm_integration:
+  default_model: "qwen-14b"
+  temperature: 0.3  # Lower temperature for factual answers
+  max_tokens: 1000
+  include_sources: true  # Include source documents in response
+  confidence_threshold: 0.6  # Minimum confidence for answers
+
+# Data Sources
+data_sources:
+  # Character profiles
+  character_profiles:
+    enabled: true
+    path: "data/films/*/characters/*.json"
+    auto_update: true
+
+  # Scene descriptions
+  scene_descriptions:
+    enabled: true
+    path: "data/films/*/scenes/*.md"
+    auto_update: true
+
+  # Style guides
+  style_guides:
+    enabled: true
+    path: "data/styles/*.yaml"
+    auto_update: false
+
+  # Film metadata
+  film_metadata:
+    enabled: true
+    path: "data/films/*/README.md"
+    auto_update: true
+
+  # Generation history
+  generation_history:
+    enabled: false  # Enable to learn from past generations
+    path: "outputs/*/metadata.json"
+    max_age_days: 30
+
+# Quality Metrics
+quality_metrics:
+  # Relevance scoring
+  track_relevance: true
+  min_relevance_score: 0.6
+
+  # Diversity
+  track_diversity: true
+  diversity_threshold: 0.8  # Ensure diverse results
+
+  # Freshness
+  track_freshness: true
+  freshness_decay_days: 30  # Prefer recent documents
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_queries: true
+  log_retrieval_stats: true
+  log_file: "logs/rag_system.log"

@@ -1,0 +1,267 @@
+# Data Sources Configuration
+#
+# Defines data sources to be indexed in the knowledge base
+#
+# Author: Animation AI Studio
+# Date: 2025-11-17
+
+# Character Knowledge
+characters:
+  luca:
+    name: "Luca Paguro"
+    film: "luca"
+    description: |
+      Luca is a young sea monster living beneath the Italian Riviera.
+      He is curious, adventurous, and dreams of exploring the human world.
+      His best friend is Alberto Scorfano, another sea monster.
+
+    personality:
+      - Curious and imaginative
+      - Initially timid but grows more confident
+      - Loyal to his friends
+      - Fascinated by human culture
+
+    appearance:
+      - Brown hair
+      - Green eyes (in human form)
+      - Youthful, energetic demeanor
+
+    relationships:
+      - Alberto: Best friend
+      - Giulia: Human friend from Portorosso
+
+    reference_images:
+      - "data/films/luca/characters/luca_ref_1.jpg"
+      - "data/films/luca/characters/luca_ref_2.jpg"
+
+    voice_samples:
+      - "data/films/luca/voice_samples/luca_001.wav"
+
+    tags:
+      - character
+      - sea_monster
+      - protagonist
+      - luca_film
+
+  alberto:
+    name: "Alberto Scorfano"
+    film: "luca"
+    description: |
+      Alberto is a confident and adventurous sea monster.
+      He is Luca's best friend and mentor in exploring the human world.
+
+    personality:
+      - Confident and bold
+      - Independent
+      - Protective of Luca
+      - Hides insecurities behind bravado
+
+    appearance:
+      - Dark curly hair
+      - Athletic build
+      - Mischievous smile
+
+    relationships:
+      - Luca: Best friend
+
+    tags:
+      - character
+      - sea_monster
+      - deuteragonist
+      - luca_film
+
+# Style Guides
+styles:
+  pixar_3d:
+    name: "Pixar 3D Animation Style"
+    description: |
+      Classic Pixar 3D animation style characterized by:
+      - Smooth, rounded character designs
+      - Vibrant, saturated colors
+      - Expressive facial animations
+      - Detailed textures with stylized realism
+      - Warm, inviting lighting
+
+    keywords:
+      - "pixar style"
+      - "3d animation"
+      - "vibrant colors"
+      - "expressive characters"
+      - "stylized realism"
+
+    negative_keywords:
+      - "photorealistic"
+      - "2d animation"
+      - "flat shading"
+      - "low poly"
+
+    lora_models:
+      - "pixar_3d_style_lora"
+      - "character_expression_lora"
+
+    tags:
+      - style
+      - pixar
+      - 3d_animation
+
+  italian_summer:
+    name: "Italian Summer Coastal Style"
+    description: |
+      Warm, sun-drenched Italian coastal aesthetic:
+      - Warm golden lighting
+      - Vibrant blues and yellows
+      - Weathered textures (stone, wood)
+      - Mediterranean architecture
+      - Coastal ambiance
+
+    keywords:
+      - "italian coastal town"
+      - "mediterranean"
+      - "summer lighting"
+      - "warm colors"
+      - "seaside"
+
+    lora_models:
+      - "portorosso_background_lora"
+      - "italian_architecture_lora"
+
+    tags:
+      - style
+      - environment
+      - luca_film
+
+# Scene Templates
+scene_templates:
+  beach_running:
+    name: "Running on Beach"
+    description: "Character running along Italian beach, excited expression"
+    elements:
+      - Sandy beach
+      - Azure water
+      - Italian coastal architecture in background
+      - Bright summer sunlight
+      - Dynamic pose (running)
+
+    lora_combination:
+      - character_lora: 0.8
+      - italian_summer_lora: 0.6
+      - dynamic_pose_lora: 0.7
+
+    controlnet_type: "pose"
+
+    tags:
+      - scene
+      - outdoor
+      - beach
+      - action
+
+  town_square:
+    name: "Portorosso Town Square"
+    description: "Character in the town square of Portorosso"
+    elements:
+      - Colorful Italian buildings
+      - Cobblestone plaza
+      - Fountain or market stalls
+      - Warm afternoon lighting
+
+    lora_combination:
+      - character_lora: 0.8
+      - portorosso_town_lora: 0.7
+
+    tags:
+      - scene
+      - town
+      - portorosso
+
+# Technical Knowledge
+technical_knowledge:
+  image_generation:
+    sdxl_settings:
+      resolution: "1024x1024"
+      steps_range: [20, 50]
+      cfg_scale_range: [7.0, 9.0]
+      scheduler_options:
+        - "Euler"
+        - "DPM++ 2M"
+        - "DDIM"
+
+    lora_guidelines:
+      weight_range: [0.5, 1.0]
+      max_loras: 3
+      character_weight: 0.8
+      style_weight: 0.6
+      background_weight: 0.5
+
+    controlnet_settings:
+      pose_weight: 0.9
+      depth_weight: 0.7
+      canny_weight: 0.8
+
+    quality_thresholds:
+      consistency_score: 0.65
+      aesthetic_score: 6.0
+
+  voice_synthesis:
+    gpt_sovits_settings:
+      emotions:
+        neutral: {temp: 1.0, top_p: 0.9}
+        happy: {temp: 1.2, top_p: 0.95}
+        sad: {temp: 0.8, top_p: 0.85}
+        excited: {temp: 1.3, top_p: 0.97}
+        angry: {temp: 0.9, top_p: 0.88}
+
+      quality_requirements:
+        sample_rate: 44100
+        min_snr: 15.0
+        min_duration: 1.0
+        max_duration: 10.0
+
+# Film Knowledge
+films:
+  luca:
+    title: "Luca"
+    year: 2021
+    studio: "Pixar Animation Studios"
+    director: "Enrico Casarosa"
+    setting: "Italian Riviera, 1950s-60s"
+    themes:
+      - Friendship
+      - Coming of age
+      - Acceptance
+      - Italian culture
+
+    main_characters:
+      - luca
+      - alberto
+      - giulia
+
+    key_locations:
+      - Portorosso
+      - Underwater sea monster village
+      - Italian coastal beaches
+
+    visual_style:
+      - Impressionistic backgrounds
+      - Warm, saturated colors
+      - Stylized character designs
+      - Detailed Italian architecture
+
+    tags:
+      - film
+      - pixar
+      - 2021
+      - italian_riviera
+
+# Prompt Templates
+prompt_templates:
+  character_generation:
+    base: "{character}, {description}, {style}, high quality, detailed"
+    negative: "blurry, low quality, distorted, duplicate, bad anatomy"
+
+  scene_generation:
+    base: "{character}, {scene_description}, {environment}, {lighting}, {style}"
+    negative: "blurry, low quality, bad composition, artifacts"
+
+  style_transfer:
+    base: "{subject} in the style of {style}, {quality_modifiers}"
+    negative: "inconsistent style, artifacts, distortion"
