@@ -318,6 +318,10 @@ def create_default_tool_registry() -> ToolRegistry:
     from scripts.agent.tools.video_analysis_tools import register_video_analysis_tools
     register_video_analysis_tools(registry)
 
+    # Video Editing Tools
+    from scripts.agent.tools.video_editing_tools import register_video_editing_tools
+    register_video_editing_tools(registry)
+
     logger.info(f"Created default tool registry with {len(registry.tools)} tools")
     return registry
 
