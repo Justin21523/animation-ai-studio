@@ -1,0 +1,182 @@
+# Animation AI Studio - Complete Requirements
+# Master requirements file for entire project
+# Date: 2025-11-17
+
+# ============================================================================
+# CORE DEPENDENCIES
+# ============================================================================
+
+# Python version requirement
+# python>=3.10,<3.12
+
+# Deep Learning Frameworks
+torch>=2.7.0
+torchvision>=0.20.0
+numpy>=1.24.0,<2.0.0
+
+# ============================================================================
+# MODULE 1: LLM BACKEND
+# ============================================================================
+
+# vLLM for LLM inference
+vllm>=0.6.0
+# FastAPI for API gateway
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+# Redis for caching
+redis>=5.0.0
+# HTTP client
+httpx>=0.25.0
+# Environment management
+python-dotenv>=1.0.0
+
+# ============================================================================
+# MODULE 2: IMAGE GENERATION
+# ============================================================================
+
+# Diffusers for Stable Diffusion
+diffusers>=0.30.0
+transformers>=4.35.0
+accelerate>=0.24.0
+# Image processing
+Pillow>=10.0.0
+# Face recognition for consistency
+insightface>=0.7.3
+onnxruntime>=1.16.0
+
+# ============================================================================
+# MODULE 3: VOICE SYNTHESIS
+# ============================================================================
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+scipy>=1.11.0
+# Speech recognition
+openai-whisper>=20231117
+# Audio effects
+pydub>=0.25.0
+
+# ============================================================================
+# MODULE 5: RAG SYSTEM
+# ============================================================================
+
+# Vector databases
+faiss-cpu>=1.7.4  # Use faiss-gpu if CUDA available
+chromadb>=0.4.0
+# Embeddings
+sentence-transformers>=2.2.0
+
+# ============================================================================
+# MODULE 6: AGENT FRAMEWORK
+# ============================================================================
+
+# Web search
+duckduckgo-search>=3.9.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+# LangChain components (optional)
+langchain>=0.1.0
+langgraph>=0.0.20
+
+# ============================================================================
+# MODULE 7: VIDEO ANALYSIS
+# ============================================================================
+
+# Video processing
+opencv-python>=4.8.0
+# Scene detection
+scenedetect[opencv]>=0.6.0
+# Image quality metrics
+scikit-image>=0.22.0
+
+# ============================================================================
+# MODULE 8: VIDEO EDITING
+# ============================================================================
+
+# Video editing
+moviepy>=1.0.3
+# Image processing for SAM2 (uses LoRA pipeline)
+# SAM2 dependencies handled by LoRA pipeline
+
+# ============================================================================
+# MODULE 9: CREATIVE STUDIO
+# ============================================================================
+
+# CLI interface
+argparse  # Built-in
+# Async support
+aiofiles>=23.0.0
+
+# ============================================================================
+# UTILITIES & DEVELOPMENT
+# ============================================================================
+
+# Configuration
+pyyaml>=6.0
+omegaconf>=2.3.0
+# Progress bars
+tqdm>=4.66.0
+# Logging
+colorlog>=6.7.0
+# Data validation
+pydantic>=2.0.0
+
+# ============================================================================
+# TESTING
+# ============================================================================
+
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.2.0
+
+# ============================================================================
+# MONITORING (LLM Backend)
+# ============================================================================
+
+# Prometheus client
+prometheus-client>=0.19.0
+# Metrics
+psutil>=5.9.0
+
+# ============================================================================
+# OPTIONAL DEPENDENCIES
+# ============================================================================
+
+# Jupyter for experimentation
+# jupyter>=1.0.0
+# ipywidgets>=8.1.0
+
+# GPU monitoring
+# pynvml>=11.5.0
+
+# Advanced image processing
+# albumentations>=1.3.0
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+# 1. For GPU acceleration:
+#    - Install CUDA 12.8
+#    - Use faiss-gpu instead of faiss-cpu
+#    - Ensure torch with CUDA support
+
+# 2. For xformers (FORBIDDEN in this project):
+#    - DO NOT install xformers
+#    - We use PyTorch native SDPA instead
+
+# 3. For SAM2:
+#    - Handled by 3d-animation-lora-pipeline project
+#    - Ensure LoRA pipeline is accessible
+
+# 4. Platform-specific:
+#    - Windows: Some packages may need pre-built wheels
+#    - Linux: Generally works out of the box
+#    - macOS: Limited GPU support (MPS)
+
+# 5. Model downloads:
+#    - Models stored in /mnt/c/AI_LLM_projects/ai_warehouse/
+#    - First run will download required models
+#    - Ensure sufficient disk space (~50GB+)
