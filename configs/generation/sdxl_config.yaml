@@ -1,0 +1,86 @@
+# SDXL Configuration for RTX 5080 16GB
+# Animation AI Studio - Image Generation Module
+
+# Model paths (AI Warehouse)
+model:
+  base_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/stable-diffusion-xl-base-1.0"
+  refiner_model: null  # Optional refiner (requires additional VRAM)
+  variant: "fp16"  # fp16 for VRAM efficiency
+
+# Attention backend (CRITICAL)
+attention:
+  backend: "sdpa"  # PyTorch 2.7.0 SDPA (IMMUTABLE)
+  enable_xformers: false  # FORBIDDEN
+  enable_attention_slicing: true
+
+# VRAM optimizations
+vram:
+  enable_model_cpu_offload: false  # Enable if VRAM issues (slower)
+  enable_vae_slicing: true  # Reduces VRAM for VAE
+  enable_vae_tiling: true  # Reduces VRAM for large images
+  gpu_memory_utilization: 0.85  # Reserve 15% VRAM
+
+# Device settings
+device:
+  device: "cuda"
+  dtype: "float16"  # fp16 for VRAM efficiency
+
+# Default generation parameters
+generation:
+  width: 1024
+  height: 1024
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  num_images_per_prompt: 1
+  scheduler: "euler"  # "euler", "dpm", "ddim"
+
+  # Quality presets
+  quality_presets:
+    draft:
+      steps: 20
+      cfg_scale: 7.0
+      description: "Fast generation, lower quality"
+
+    standard:
+      steps: 30
+      cfg_scale: 7.5
+      description: "Balanced quality and speed"
+
+    high:
+      steps: 40
+      cfg_scale: 8.0
+      description: "High quality, slower"
+
+    ultra:
+      steps: 50
+      cfg_scale: 8.5
+      description: "Highest quality, slowest"
+
+# Negative prompt templates
+negative_prompts:
+  default: "blurry, low quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs"
+
+  character: "blurry, low quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs, bad proportions, malformed"
+
+  background: "blurry, low quality, distorted, artifacts, noise, pixelated"
+
+# Style prompts for 3D animation
+style_prompts:
+  pixar_3d: "pixar style, 3d animation, high quality, detailed, vibrant colors, professional lighting"
+
+  disney_3d: "disney style, 3d animation, high quality, detailed, warm colors, cinematic lighting"
+
+  dreamworks_3d: "dreamworks style, 3d animation, high quality, detailed, dynamic lighting"
+
+# Output settings
+output:
+  save_format: "png"
+  quality: 95  # For JPEG (if used)
+  output_dir: "outputs/image_generation"
+  save_metadata: true  # Save generation parameters
+
+# Logging
+logging:
+  enable_diffusers_logging: false
+  log_generation_params: true
+  log_vram_usage: true

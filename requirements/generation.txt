@@ -1,16 +1,36 @@
-# Image and video generation dependencies
+# Image Generation Module Requirements
+# Animation AI Studio - Module 2
 
-# Stable Diffusion
-diffusers>=0.25.0
-transformers>=4.30.0
-accelerate>=0.24.0
+# Core dependencies (CRITICAL VERSIONS)
+torch>=2.7.0  # CRITICAL: Must be 2.7.0+ for PyTorch SDPA
+torchvision>=0.20.0
+diffusers>=0.33.0
+transformers>=4.47.0
+accelerate>=0.35.0
 
-# ControlNet and LoRA
+# Image processing
+Pillow>=11.0.0
+opencv-python>=4.10.0
+numpy>=2.2.0
+
+# LoRA and model formats
+safetensors>=0.4.0
+peft>=0.14.0  # For LoRA support
+
+# ControlNet preprocessing (optional)
 controlnet-aux>=0.0.7
-peft>=0.7.0
 
-# Video generation
-# AnimateDiff, SVD (install separately)
+# Configuration
+PyYAML>=6.0
+
+# Progress bars
+tqdm>=4.67.0
 
 # Prompt engineering
 compel>=2.0.0
+
+# Video generation (future)
+# AnimateDiff, SVD (install separately)
+
+# NOTE: Do NOT install xformers
+# PyTorch 2.7.0 native SDPA is used instead (xformers FORBIDDEN)

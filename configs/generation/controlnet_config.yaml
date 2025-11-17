@@ -1,0 +1,94 @@
+# ControlNet Configuration
+# Animation AI Studio - Image Generation Module
+
+# ControlNet models (HuggingFace)
+controlnet_models:
+  pose:
+    model_id: "diffusers/controlnet-openpose-sdxl-1.0"
+    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-openpose-sdxl-1.0"
+    description: "OpenPose skeleton control"
+    use_case: "Character pose control, consistent body positioning"
+
+  canny:
+    model_id: "diffusers/controlnet-canny-sdxl-1.0"
+    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-canny-sdxl-1.0"
+    description: "Canny edge detection control"
+    use_case: "Scene composition, edge-based generation"
+
+  depth:
+    model_id: "diffusers/controlnet-depth-sdxl-1.0"
+    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-depth-sdxl-1.0"
+    description: "Depth map control"
+    use_case: "3D scene depth, spatial relationships"
+
+  seg:
+    model_id: "diffusers/controlnet-seg-sdxl-1.0"
+    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-seg-sdxl-1.0"
+    description: "Segmentation map control"
+    use_case: "Character/background separation, precise region control"
+
+  normal:
+    model_id: "diffusers/controlnet-normal-sdxl-1.0"
+    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-normal-sdxl-1.0"
+    description: "Normal map control"
+    use_case: "Surface detail, lighting consistency"
+
+# Default ControlNet parameters
+defaults:
+  conditioning_scale: 1.0  # ControlNet influence (0.0-2.0)
+  guess_mode: false  # Enable prompt-free generation
+  detection_resolution: 512  # Preprocessing resolution
+  output_resolution: 1024  # Output image resolution
+
+# Control type presets
+presets:
+  character_pose:
+    control_type: "pose"
+    conditioning_scale: 0.9
+    description: "Strong pose control for character consistency"
+
+  scene_composition:
+    control_type: "canny"
+    conditioning_scale: 0.7
+    description: "Moderate edge control for scene composition"
+
+  depth_consistency:
+    control_type: "depth"
+    conditioning_scale: 0.8
+    description: "Depth-based 3D consistency"
+
+  precise_regions:
+    control_type: "seg"
+    conditioning_scale: 1.0
+    description: "Precise control over specific regions"
+
+# Preprocessing parameters
+preprocessing:
+  canny:
+    low_threshold: 100
+    high_threshold: 200
+
+  pose:
+    # Note: OpenPose preprocessing requires controlnet_aux package
+    # Install with: pip install controlnet_aux
+    body: true
+    hand: false  # Disable for faster processing
+    face: false  # Disable for faster processing
+
+  depth:
+    # Note: Depth estimation requires transformers package
+    # Install with: pip install transformers
+    model: "Intel/dpt-hybrid-midas"  # Depth estimation model
+
+# VRAM considerations
+vram:
+  # SDXL + ControlNet requires ~14-15GB VRAM
+  # Ensure no other heavy models loaded
+  estimated_vram_gb: 14.5
+  warning_threshold_gb: 14.0
+
+# Output settings
+output:
+  save_control_image: true  # Save preprocessed control image
+  save_combined_visualization: true  # Save control + generated image side-by-side
+  output_dir: "outputs/controlnet_generation"

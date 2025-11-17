@@ -1,0 +1,122 @@
+# LoRA Registry
+# Animation AI Studio - Image Generation Module
+#
+# This file maps LoRA adapters to characters, styles, and backgrounds.
+# LoRAs will be trained in the 3d-animation-lora-pipeline project.
+
+# LoRA adapters
+loras:
+  # Character LoRAs (from 3D Animation LoRA Pipeline)
+  - name: "luca"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/characters/luca_character.safetensors"
+    type: "character"
+    trigger_words: ["luca", "boy with brown hair and green eyes"]
+    recommended_weight: 0.8
+    description: "Luca Paguro character LoRA (Pixar's Luca)"
+    metadata:
+      film: "luca"
+      character_type: "main_character"
+      training_images: 500
+      training_steps: 1000
+
+  - name: "alberto"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/characters/alberto_character.safetensors"
+    type: "character"
+    trigger_words: ["alberto", "boy with green hair and blue eyes"]
+    recommended_weight: 0.8
+    description: "Alberto Scorfano character LoRA (Pixar's Luca)"
+    metadata:
+      film: "luca"
+      character_type: "main_character"
+      training_images: 450
+      training_steps: 1000
+
+  # Style LoRAs
+  - name: "pixar_3d_style"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/styles/pixar_3d_style.safetensors"
+    type: "style"
+    trigger_words: ["pixar style", "3d animation", "vibrant colors"]
+    recommended_weight: 0.6
+    description: "Pixar 3D animation style LoRA"
+    metadata:
+      style_type: "animation_studio"
+      source_films: ["luca", "coco", "turning-red", "onward"]
+      training_images: 2000
+      training_steps: 2000
+
+  - name: "warm_summer_lighting"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/styles/warm_summer_lighting.safetensors"
+    type: "style"
+    trigger_words: ["warm lighting", "summer", "golden hour"]
+    recommended_weight: 0.5
+    description: "Warm summer lighting style (Italian Riviera)"
+    metadata:
+      style_type: "lighting"
+      source_film: "luca"
+      training_images: 800
+      training_steps: 1200
+
+  # Background LoRAs
+  - name: "portorosso_town"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/backgrounds/portorosso_town.safetensors"
+    type: "background"
+    trigger_words: ["italian seaside town", "colorful buildings", "portorosso"]
+    recommended_weight: 0.7
+    description: "Portorosso town background LoRA"
+    metadata:
+      film: "luca"
+      location_type: "town"
+      training_images: 600
+      training_steps: 1000
+
+  - name: "italian_beach"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/backgrounds/italian_beach.safetensors"
+    type: "background"
+    trigger_words: ["italian beach", "mediterranean coast", "rocky shoreline"]
+    recommended_weight: 0.7
+    description: "Italian beach background LoRA"
+    metadata:
+      film: "luca"
+      location_type: "beach"
+      training_images: 500
+      training_steps: 1000
+
+  # Pose LoRAs (optional, for specific poses)
+  - name: "running_pose"
+    path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/lora/poses/running_pose.safetensors"
+    type: "pose"
+    trigger_words: ["running", "dynamic pose", "motion"]
+    recommended_weight: 0.6
+    description: "Running pose LoRA"
+    metadata:
+      pose_type: "dynamic"
+      training_images: 400
+      training_steps: 800
+
+# NOTE: These LoRA files do not exist yet.
+# They will be created by the 3d-animation-lora-pipeline project.
+# This registry serves as a blueprint for future LoRA integration.
+
+# LoRA combinations (presets)
+combinations:
+  luca_beach_scene:
+    description: "Luca on the beach"
+    loras:
+      - name: "luca"
+        weight: 0.8
+      - name: "italian_beach"
+        weight: 0.7
+      - name: "pixar_3d_style"
+        weight: 0.6
+
+  luca_alberto_town:
+    description: "Luca and Alberto in Portorosso"
+    loras:
+      - name: "luca"
+        weight: 0.8
+      - name: "alberto"
+        weight: 0.8
+      - name: "portorosso_town"
+        weight: 0.7
+      - name: "pixar_3d_style"
+        weight: 0.6
