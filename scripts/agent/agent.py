@@ -38,6 +38,7 @@ from scripts.agent.reasoning.reasoning_module import ReasoningModule
 from scripts.agent.tools.tool_calling_module import ToolCallingModule
 from scripts.agent.functions.function_calling_module import FunctionCallingModule
 from scripts.agent.multi_step.multi_step_module import MultiStepModule
+from scripts.agent.web_search.web_search_module import WebSearchModule
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,11 @@ class AgentConfig:
     enable_tool_calling: bool = True
     enable_function_calling: bool = True
     enable_multi_step: bool = True
+    enable_web_search: bool = True
+
+    # Web Search settings
+    brave_api_key: Optional[str] = None
+    prefer_brave_search: bool = True
 
     # Quality settings
     quality_threshold: float = 0.7
@@ -91,6 +97,7 @@ class Agent:
     - Tool Calling Module: LLM-powered tool selection and execution
     - Function Calling Module: Type-safe function calling with auto-schema
     - Multi-Step Module: Stateful workflow execution with quality checks
+    - Web Search Module: Real-time web information retrieval (Brave/DuckDuckGo)
     """
 
     def __init__(
@@ -123,11 +130,12 @@ class Agent:
         self.tool_calling_module: Optional[ToolCallingModule] = None
         self.function_calling_module: Optional[FunctionCallingModule] = None
         self.multi_step_module: Optional[MultiStepModule] = None
+        self.web_search_module: Optional[WebSearchModule] = None
 
         self._own_llm = llm_client is None
         self._own_kb = knowledge_base is None
 
-        logger.info("Agent initialized (Phase 1 + Phase 2)")
+        logger.info("Agent initialized (Phase 1 + Phase 2 + Web Search)")
 
     async def __aenter__(self):
         """Async context manager entry"""
@@ -169,7 +177,15 @@ class Agent:
             )
             await self.multi_step_module.__aenter__()
 
-        logger.info("Agent fully initialized and ready (Phase 1 + Phase 2)")
+        if self.config.enable_web_search:
+            self.web_search_module = WebSearchModule(
+                llm_client=self._llm_client,
+                brave_api_key=self.config.brave_api_key,
+                prefer_brave=self.config.prefer_brave_search
+            )
+            await self.web_search_module.__aenter__()
+
+        logger.info("Agent fully initialized and ready (Phase 1 + Phase 2 + Web Search)")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -193,6 +209,9 @@ class Agent:
 
         if self.multi_step_module:
             await self.multi_step_module.__aexit__(exc_type, exc_val, exc_tb)
+
+        if self.web_search_module:
+            await self.web_search_module.__aexit__(exc_type, exc_val, exc_tb)
 
         # Close shared resources
         if self._own_kb and self._knowledge_base:
@@ -241,18 +260,57 @@ class Agent:
             trace.add_thought("Analyzing user request with advanced reasoning...", "thinking")
             intent = await self.thinking_module.understand_intent(user_request, context)
 
-            # Step 2: Retrieve knowledge
+            # Step 2: Retrieve knowledge (RAG + Web Search)
             knowledge_context = ""
+            web_context = ""
+
+            # RAG: Local knowledge base
             if self.config.enable_rag and self.rag_module:
+                trace.add_thought("Retrieving from local knowledge base...", "action")
                 rag_result = await self.rag_module.retrieve_context_for_task(user_request)
                 knowledge_context = rag_result.context
+
+            # Web Search: Real-time web information
+            if self.config.enable_web_search and self.web_search_module:
+                # Check if task needs web search (LLM decides)
+                needs_web_search = await self._check_if_needs_web_search(user_request, intent)
+
+                if needs_web_search:
+                    trace.add_thought("Searching web for latest information...", "action")
+
+                    search_response = await self.web_search_module.search(
+                        query=user_request,
+                        count=5,
+                        rank_results=True
+                    )
+
+                    if search_response.success and search_response.results:
+                        trace.add_thought(
+                            f"Found {len(search_response.results)} web results from {search_response.source}",
+                            "observation"
+                        )
+
+                        # Synthesize web results
+                        web_context = await self.web_search_module.synthesize_results(search_response)
+                    else:
+                        trace.add_thought(
+                            f"Web search failed: {search_response.error}",
+                            "observation"
+                        )
+
+            # Combine contexts
+            combined_context = ""
+            if knowledge_context:
+                combined_context += f"Local Knowledge:\n{knowledge_context}\n\n"
+            if web_context:
+                combined_context += f"Web Information:\n{web_context}\n\n"
 
             # Step 3: Reasoning with selected strategy
             trace.add_thought(f"Applying {strategy.value} reasoning...", "action")
             reasoning_trace = await self.reasoning_module.reason(
                 task=user_request,
                 strategy=strategy,
-                context=knowledge_context
+                context=combined_context or "No additional context"
             )
 
             # Merge reasoning thoughts into main trace
@@ -500,6 +558,60 @@ Task type: {intent.task_type.value}
         )
 
         return response["content"]
+
+    async def _check_if_needs_web_search(
+        self,
+        user_request: str,
+        intent: Any
+    ) -> bool:
+        """
+        Check if task needs web search using LLM
+
+        Args:
+            user_request: User request
+            intent: Intent analysis result
+
+        Returns:
+            True if web search is needed
+        """
+        prompt = f"""Determine if this task requires real-time web search.
+
+User request: {user_request}
+Intent: {intent.primary_intent}
+Task type: {intent.task_type.value}
+
+Tasks that NEED web search:
+- Current events, news, latest information
+- Technical documentation (latest versions, APIs)
+- Real-world data (prices, schedules, statistics)
+- Recent developments in specific fields
+
+Tasks that DON'T NEED web search:
+- Character information (local knowledge base)
+- Style guides (local knowledge base)
+- Image/voice generation (uses local tools)
+- Questions about project structure
+
+Respond with JSON:
+{{"needs_web_search": true/false, "reasoning": "..."}}
+
+Decision:"""
+
+        try:
+            response = await self._llm_client.chat(
+                model=self.config.llm_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=100
+            )
+
+            import json
+            data = json.loads(response["content"])
+            return data.get("needs_web_search", False)
+
+        except Exception as e:
+            logger.warning(f"Failed to check web search need: {e}, defaulting to False")
+            return False
 
     def get_conversation_history(self) -> List[Dict[str, str]]:
         """Get conversation history"""
