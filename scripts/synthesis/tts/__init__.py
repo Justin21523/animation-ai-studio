@@ -31,6 +31,16 @@ from .character_voice_manager import (
     CharacterVoiceManager,
     CharacterVoiceConfig
 )
+from .voice_model_trainer import (
+    VoiceModelTrainer,
+    TrainingConfig,
+    TrainingResult
+)
+from .batch_synthesis import (
+    BatchSynthesisPipeline,
+    BatchSynthesisConfig,
+    BatchSynthesisResult
+)
 
 __all__ = [
     # Core wrapper
@@ -50,4 +60,14 @@ __all__ = [
     # Character management
     "CharacterVoiceManager",
     "CharacterVoiceConfig",
+
+    # Model training
+    "VoiceModelTrainer",
+    "TrainingConfig",
+    "TrainingResult",
+
+    # Batch synthesis
+    "BatchSynthesisPipeline",
+    "BatchSynthesisConfig",
+    "BatchSynthesisResult",
 ]
