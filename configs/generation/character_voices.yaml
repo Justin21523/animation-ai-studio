@@ -1,0 +1,68 @@
+# Character Voice Models Registry
+
+# Character voice configurations
+characters:
+  luca:
+    display_name: "Luca Paguro"
+    description: "Young Italian boy, curious and adventurous"
+
+    # Model paths (to be trained)
+    gpt_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/luca/luca_gpt.ckpt"
+    sovits_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/luca/luca_sovits.pth"
+
+    # Reference audio for voice cloning
+    reference_audio: "data/films/luca/voice_samples/luca_ref.wav"
+    reference_text: "Silenzio, Bruno!"
+
+    # Settings
+    language: "en"
+    default_emotion: "happy"
+
+  alberto:
+    display_name: "Alberto Scorfano"
+    description: "Confident Italian boy, adventurous and bold"
+
+    # Model paths (to be trained)
+    gpt_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/alberto/alberto_gpt.ckpt"
+    sovits_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/alberto/alberto_sovits.pth"
+
+    # Reference audio
+    reference_audio: "data/films/luca/voice_samples/alberto_ref.wav"
+    reference_text: "Piacere, Girolamo Trombetta!"
+
+    # Settings
+    language: "en"
+    default_emotion: "excited"
+
+  giulia:
+    display_name: "Giulia Marcovaldo"
+    description: "Energetic Italian girl, determined and friendly"
+
+    # Model paths (to be trained)
+    gpt_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/giulia/giulia_gpt.ckpt"
+    sovits_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts/giulia/giulia_sovits.pth"
+
+    # Reference audio
+    reference_audio: "data/films/luca/voice_samples/giulia_ref.wav"
+    reference_text: "Santa Mozzarella!"
+
+    # Settings
+    language: "en"
+    default_emotion: "happy"
+
+# Training datasets (voice sample locations)
+datasets:
+  luca:
+    source_video: "/mnt/data/ai_data/datasets/3d-anime/luca/luca.mp4"
+    voice_samples_dir: "data/films/luca/voice_samples"
+    transcript: "data/films/luca/transcript.json"
+
+  alberto:
+    source_video: "/mnt/data/ai_data/datasets/3d-anime/luca/luca.mp4"
+    voice_samples_dir: "data/films/luca/voice_samples"
+    transcript: "data/films/luca/transcript.json"
+
+  giulia:
+    source_video: "/mnt/data/ai_data/datasets/3d-anime/luca/luca.mp4"
+    voice_samples_dir: "data/films/luca/voice_samples"
+    transcript: "data/films/luca/transcript.json"
