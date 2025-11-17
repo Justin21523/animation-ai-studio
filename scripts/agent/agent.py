@@ -34,6 +34,10 @@ from scripts.agent.core.types import (
 )
 from scripts.agent.thinking.thinking_module import ThinkingModule
 from scripts.agent.rag_usage.rag_module import RAGUsageModule
+from scripts.agent.reasoning.reasoning_module import ReasoningModule
+from scripts.agent.tools.tool_calling_module import ToolCallingModule
+from scripts.agent.functions.function_calling_module import FunctionCallingModule
+from scripts.agent.multi_step.multi_step_module import MultiStepModule
 
 
 logger = logging.getLogger(__name__)
@@ -52,26 +56,41 @@ class AgentConfig:
     rag_top_k: int = 5
 
     # Reasoning settings
-    default_strategy: ReasoningStrategy = ReasoningStrategy.DIRECT
+    default_strategy: ReasoningStrategy = ReasoningStrategy.CHAIN_OF_THOUGHT
     enable_reflection: bool = True
+
+    # Phase 2 settings
+    enable_tool_calling: bool = True
+    enable_function_calling: bool = True
+    enable_multi_step: bool = True
 
     # Quality settings
     quality_threshold: float = 0.7
     max_iterations: int = 3
+    max_retries: int = 3
 
 
 class Agent:
     """
-    Main Agent Orchestrator
+    Main Agent Orchestrator (Phase 1 + Phase 2 Complete)
 
     Coordinates all sub-modules to:
     1. Understand user intent (Thinking Module)
     2. Retrieve relevant knowledge (RAG Module)
-    3. Plan execution
-    4. Execute tasks
-    5. Reflect and iterate
+    3. Advanced reasoning (Reasoning Module - ReAct, CoT, ToT)
+    4. Tool/function calling (Tool Calling, Function Calling)
+    5. Multi-step execution (Multi-Step Module)
+    6. Reflect and iterate
 
-    This is Phase 1 implementation with core functionality.
+    Phase 1 (Core Infrastructure):
+    - Thinking Module: Intent understanding, task decomposition, reflection
+    - RAG Usage Module: Knowledge retrieval and context management
+
+    Phase 2 (Advanced Reasoning & Execution):
+    - Reasoning Module: ReAct, Chain-of-Thought, Tree-of-Thoughts
+    - Tool Calling Module: LLM-powered tool selection and execution
+    - Function Calling Module: Type-safe function calling with auto-schema
+    - Multi-Step Module: Stateful workflow execution with quality checks
     """
 
     def __init__(
@@ -91,16 +110,24 @@ class Agent:
         self.config = config or AgentConfig()
         self.state = AgentState()
 
-        # Components
+        # Core components
         self._llm_client = llm_client
         self._knowledge_base = knowledge_base
+
+        # Phase 1 modules
         self.thinking_module: Optional[ThinkingModule] = None
         self.rag_module: Optional[RAGUsageModule] = None
+
+        # Phase 2 modules
+        self.reasoning_module: Optional[ReasoningModule] = None
+        self.tool_calling_module: Optional[ToolCallingModule] = None
+        self.function_calling_module: Optional[FunctionCallingModule] = None
+        self.multi_step_module: Optional[MultiStepModule] = None
 
         self._own_llm = llm_client is None
         self._own_kb = knowledge_base is None
 
-        logger.info("Agent initialized")
+        logger.info("Agent initialized (Phase 1 + Phase 2)")
 
     async def __aenter__(self):
         """Async context manager entry"""
@@ -114,7 +141,7 @@ class Agent:
             self._knowledge_base = KnowledgeBase()
             await self._knowledge_base.__aenter__()
 
-        # Initialize modules
+        # Initialize Phase 1 modules
         self.thinking_module = ThinkingModule(llm_client=self._llm_client)
         await self.thinking_module.__aenter__()
 
@@ -122,22 +149,178 @@ class Agent:
             self.rag_module = RAGUsageModule(knowledge_base=self._knowledge_base)
             await self.rag_module.__aenter__()
 
-        logger.info("Agent fully initialized and ready")
+        # Initialize Phase 2 modules
+        self.reasoning_module = ReasoningModule(llm_client=self._llm_client)
+        await self.reasoning_module.__aenter__()
+
+        if self.config.enable_tool_calling:
+            self.tool_calling_module = ToolCallingModule(llm_client=self._llm_client)
+            await self.tool_calling_module.__aenter__()
+
+        if self.config.enable_function_calling:
+            self.function_calling_module = FunctionCallingModule(llm_client=self._llm_client)
+            await self.function_calling_module.__aenter__()
+
+        if self.config.enable_multi_step:
+            self.multi_step_module = MultiStepModule(
+                llm_client=self._llm_client,
+                quality_threshold=self.config.quality_threshold,
+                max_retries=self.config.max_retries
+            )
+            await self.multi_step_module.__aenter__()
+
+        logger.info("Agent fully initialized and ready (Phase 1 + Phase 2)")
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
+        # Close Phase 1 modules
         if self.thinking_module:
             await self.thinking_module.__aexit__(exc_type, exc_val, exc_tb)
 
         if self.rag_module:
             await self.rag_module.__aexit__(exc_type, exc_val, exc_tb)
 
+        # Close Phase 2 modules
+        if self.reasoning_module:
+            await self.reasoning_module.__aexit__(exc_type, exc_val, exc_tb)
+
+        if self.tool_calling_module:
+            await self.tool_calling_module.__aexit__(exc_type, exc_val, exc_tb)
+
+        if self.function_calling_module:
+            await self.function_calling_module.__aexit__(exc_type, exc_val, exc_tb)
+
+        if self.multi_step_module:
+            await self.multi_step_module.__aexit__(exc_type, exc_val, exc_tb)
+
+        # Close shared resources
         if self._own_kb and self._knowledge_base:
             await self._knowledge_base.__aexit__(exc_type, exc_val, exc_tb)
 
         if self._own_llm and self._llm_client:
             await self._llm_client.__aexit__(exc_type, exc_val, exc_tb)
+
+    async def process_advanced(
+        self,
+        user_request: str,
+        context: Optional[Dict[str, Any]] = None,
+        strategy: Optional[ReasoningStrategy] = None,
+        enable_tools: bool = True
+    ) -> AgentResponse:
+        """
+        Process user request with Phase 2 advanced features
+
+        Uses advanced reasoning, tool calling, and multi-step execution.
+
+        Args:
+            user_request: User's request
+            context: Additional context
+            strategy: Reasoning strategy to use (None = auto-select)
+            enable_tools: Whether to use tool/function calling
+
+        Returns:
+            AgentResponse with result
+        """
+        start_time = time.time()
+
+        # Select strategy if not provided
+        if strategy is None:
+            strategy = self.config.default_strategy
+
+        trace = ReasoningTrace(
+            task_description=user_request,
+            strategy=strategy
+        )
+
+        try:
+            # Add to conversation history
+            self.state.add_message("user", user_request)
+
+            # Step 1: Understand intent
+            trace.add_thought("Analyzing user request with advanced reasoning...", "thinking")
+            intent = await self.thinking_module.understand_intent(user_request, context)
+
+            # Step 2: Retrieve knowledge
+            knowledge_context = ""
+            if self.config.enable_rag and self.rag_module:
+                rag_result = await self.rag_module.retrieve_context_for_task(user_request)
+                knowledge_context = rag_result.context
+
+            # Step 3: Reasoning with selected strategy
+            trace.add_thought(f"Applying {strategy.value} reasoning...", "action")
+            reasoning_trace = await self.reasoning_module.reason(
+                task=user_request,
+                strategy=strategy,
+                context=knowledge_context
+            )
+
+            # Merge reasoning thoughts into main trace
+            for thought in reasoning_trace.thoughts:
+                trace.thoughts.append(thought)
+
+            # Step 4: Multi-step execution (for complex tasks)
+            if self.config.enable_multi_step and intent.task_type.value in ["creative", "complex"]:
+                trace.add_thought("Creating multi-step workflow plan...", "action")
+
+                plan = await self.multi_step_module.create_workflow_plan(
+                    task=user_request,
+                    context=knowledge_context
+                )
+
+                trace.add_thought(f"Executing workflow with {len(plan.steps)} steps...", "action")
+
+                workflow_trace = await self.multi_step_module.execute_workflow(plan)
+
+                # Merge workflow thoughts
+                for thought in workflow_trace.thoughts:
+                    trace.thoughts.append(thought)
+
+                result_content = workflow_trace.final_result or "Workflow completed"
+            else:
+                # Simple response generation
+                result_content = await self._generate_response(
+                    user_request, intent, knowledge_context, trace
+                )
+
+            # Step 5: Reflection
+            if self.config.enable_reflection:
+                reflection = await self.thinking_module.reflect_on_result(
+                    task=Task(
+                        task_id="main",
+                        description=user_request,
+                        task_type=intent.task_type
+                    ),
+                    result=result_content
+                )
+                trace.add_thought(reflection.content, reflection.thought_type)
+
+            trace.final_result = result_content
+            trace.success = True
+            trace.total_time = time.time() - start_time
+
+            self.state.add_message("assistant", str(result_content))
+
+            logger.info(f"Advanced processing completed in {trace.total_time:.2f}s")
+
+            return AgentResponse(
+                content=str(result_content),
+                success=True,
+                reasoning_trace=trace,
+                confidence=intent.confidence
+            )
+
+        except Exception as e:
+            logger.error(f"Error in advanced processing: {e}")
+            trace.success = False
+            trace.total_time = time.time() - start_time
+
+            return AgentResponse(
+                content=f"Error: {str(e)}",
+                success=False,
+                reasoning_trace=trace,
+                confidence=0.0
+            )
 
     async def process(
         self,
@@ -145,9 +328,10 @@ class Agent:
         context: Optional[Dict[str, Any]] = None
     ) -> AgentResponse:
         """
-        Process user request
+        Process user request (Phase 1 compatible interface)
 
         Main entry point for agent execution.
+        Uses basic processing without advanced Phase 2 features.
 
         Args:
             user_request: User's request
