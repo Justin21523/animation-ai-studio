@@ -1,0 +1,42 @@
+# Agent Framework Configuration
+#
+# Phase 1: Core functionality
+#
+# Author: Animation AI Studio
+# Date: 2025-11-17
+
+# LLM Settings
+llm:
+  model: "qwen-14b"  # Qwen2.5-14B for reasoning
+  temperature: 0.7
+  max_tokens: 2000
+
+# RAG Settings
+rag:
+  enabled: true
+  top_k: 5
+  similarity_threshold: 0.7
+
+# Reasoning Settings
+reasoning:
+  default_strategy: "direct"  # direct, react, chain_of_thought, tree_of_thoughts
+  enable_reflection: true
+  max_reasoning_steps: 10
+
+# Quality Settings
+quality:
+  threshold: 0.7
+  max_iterations: 3
+  enable_self_correction: true
+
+# Task Settings
+task:
+  max_subtasks: 10
+  enable_parallel_execution: false  # Phase 2
+  timeout_seconds: 300
+
+# Logging
+logging:
+  level: "INFO"
+  log_reasoning_trace: true
+  log_tool_calls: true
