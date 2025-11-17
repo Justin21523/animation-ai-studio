@@ -20,6 +20,11 @@ peft>=0.14.0  # For LoRA support
 # ControlNet preprocessing (optional)
 controlnet-aux>=0.0.7
 
+# Face recognition for consistency checking
+insightface>=0.7.3
+onnxruntime-gpu>=1.19.0  # For CUDA acceleration
+# Alternative: onnxruntime>=1.19.0 (CPU only)
+
 # Configuration
 PyYAML>=6.0
 
