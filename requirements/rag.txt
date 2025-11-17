@@ -1,0 +1,33 @@
+# RAG System Dependencies
+#
+# Requirements for Retrieval-Augmented Generation system
+#
+# Author: Animation AI Studio
+# Date: 2025-11-17
+
+# Vector Stores
+faiss-cpu>=1.8.0  # CPU version (or faiss-gpu for GPU support)
+chromadb>=0.4.0  # Alternative vector store
+
+# Core dependencies
+numpy>=1.24.0
+pyyaml>=6.0
+
+# Document processing
+markdown>=3.5.0  # Markdown processing
+
+# Already installed from other modules:
+# torch>=2.7.0
+# transformers>=4.47.0
+#
+# From LLM backend (llm_backend.txt):
+# aiohttp>=3.9.0
+# pydantic>=2.0.0
+#
+# From core (core.txt):
+# omegaconf>=2.3.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
