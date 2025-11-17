@@ -30,3 +30,7 @@ pandas>=2.0.0
 
 # File I/O
 h5py>=3.9.0
+
+# Model Management (Module 4)
+pynvml>=11.5.0  # NVIDIA Management Library for GPU monitoring
+requests>=2.31.0  # For service health checks

@@ -1,0 +1,137 @@
+# Model Manager Configuration
+# Dynamic model loading/unloading for RTX 5080 16GB VRAM
+
+# Hardware constraints
+hardware:
+  gpu_name: "NVIDIA GeForce RTX 5080"
+  total_vram_gb: 16.0
+  safe_max_vram_gb: 15.5  # Leave 0.5GB buffer
+  single_gpu: true
+
+# VRAM estimates for models (GB)
+vram_estimates:
+  # LLM models (measured on RTX 5080)
+  llm:
+    qwen-vl-7b:
+      vram_gb: 13.8
+      confidence: "high"
+      notes: "Measured with vLLM, gpu_memory_utilization=0.85"
+
+    qwen-14b:
+      vram_gb: 11.5
+      confidence: "high"
+      notes: "Measured with vLLM, gpu_memory_utilization=0.85"
+
+    qwen-coder-7b:
+      vram_gb: 13.5
+      confidence: "high"
+      notes: "Measured with vLLM, gpu_memory_utilization=0.85"
+
+  # Image generation models
+  image:
+    sdxl-base:
+      vram_gb: 10.5
+      confidence: "high"
+      notes: "FP16, 1024x1024, 30 steps, PyTorch SDPA"
+
+    sdxl-lora:
+      vram_gb: 11.5
+      confidence: "high"
+      notes: "SDXL + single LoRA adapter"
+
+    sdxl-controlnet:
+      vram_gb: 14.5
+      confidence: "high"
+      notes: "SDXL + LoRA + ControlNet, peak usage"
+
+  # Voice synthesis models
+  tts:
+    gpt-sovits-small:
+      vram_gb: 3.5
+      confidence: "medium"
+      notes: "Inference only, small model"
+
+    gpt-sovits-train:
+      vram_gb: 9.0
+      confidence: "medium"
+      notes: "Training mode with gradients"
+
+# Model switching strategy
+switching:
+  # Only ONE heavy model at a time
+  heavy_models: ["llm", "sdxl"]
+  light_models: ["tts"]
+
+  # Switching times (seconds)
+  timing:
+    stop_llm: 7
+    start_llm: 20
+    unload_sdxl: 3
+    load_sdxl: 6
+    total_overhead: 30  # Approximate total switching time
+
+  # Auto-unload behavior
+  auto_unload:
+    enabled: true  # Automatically unload heavy models when switching
+    clear_cache_after_unload: true
+    wait_after_unload_seconds: 1  # Give system time to release memory
+
+# Service endpoints
+services:
+  llm_backend:
+    gateway_url: "http://localhost:8000"
+    health_endpoint: "/health"
+    start_timeout_seconds: 60
+    stop_timeout_seconds: 15
+
+  sdxl:
+    load_mode: "in_process"  # Load in same process (not a service)
+
+  tts:
+    load_mode: "in_process"  # Load in same process
+
+# Safety checks
+safety:
+  strict_vram_checks: true  # Enforce safe_max_vram_gb limit
+  require_vram_buffer_gb: 0.5
+  check_before_load: true
+  monitor_during_inference: false  # Enable for debugging
+
+# Monitoring
+monitoring:
+  vram_history_size: 100  # Number of snapshots to keep
+  health_check_interval_seconds: 2
+  health_check_max_retries: 10
+
+# Caching
+caching:
+  keep_model_weights_cached: true  # Keep weights in system RAM if possible
+  clear_cuda_cache_on_unload: true
+
+# Default models
+defaults:
+  llm: "qwen-14b"  # Default LLM model
+  sdxl: "sdxl-base"  # Default SDXL variant
+  tts: "gpt-sovits-small"  # Default TTS model
+
+# Usage rules (CRITICAL)
+rules:
+  - "Only ONE heavy model (LLM or SDXL) loaded at a time"
+  - "TTS (light model) can coexist with stopped heavy models"
+  - "Always check VRAM before loading"
+  - "Auto-unload heavy models when switching"
+  - "Clear CUDA cache after unloading"
+  - "Leave 0.5GB buffer for safety"
+
+# Example workflow
+workflow_example: |
+  1. User makes request
+  2. LLM analyzes intent (LLM loaded)
+  3. LLM plans execution (LLM loaded)
+  4. Stop LLM service (free ~12-14GB)
+  5. Load SDXL pipeline (use ~13-15GB)
+  6. Generate images
+  7. Unload SDXL (free ~13-15GB)
+  8. Restart LLM service (load ~12-14GB)
+  9. LLM evaluates quality (LLM loaded)
+  10. Return results
