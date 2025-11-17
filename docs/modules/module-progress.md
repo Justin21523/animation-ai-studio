@@ -438,51 +438,261 @@ Retrieval-Augmented Generation for context-aware operations:
 ## 📋 Module 6: Agent Framework (PLANNED)
 
 **Status:** 📋 Planned (0%)
-**Estimated Lines of Code:** ~2,500
-**Estimated Files:** 10-15
+**Estimated Lines of Code:** ~5,000+ (comprehensive 7-module framework)
+**Estimated Files:** 15-20
+**Documentation:** [docs/modules/agent-framework.md](agent-framework.md) (3,454 lines, ~140KB)
 
 ### Purpose
 
-LangGraph-based autonomous agent for creative decision-making:
-- LLM understands intent
-- RAG retrieves context
-- Agent plans execution
-- Agent selects tools
-- Agent iterates until quality met
+LLM-powered autonomous agent framework for creative decision-making with **7 specialized sub-modules**:
 
-### Deliverables
+1. **Thinking Module** - Intent understanding, task decomposition, reflection
+2. **Reasoning Module** - ReAct, Chain-of-Thought, Tree-of-Thoughts strategies
+3. **Web Search Module** - Real-time information retrieval
+4. **RAG Usage Module** - Local knowledge base retrieval
+5. **Tool Calling Module** - Dynamic tool selection and execution
+6. **Function Calling Module** - Type-safe function interfaces
+7. **Multi-Step Reasoning Module** - Stateful workflow execution
 
-- [ ] LangGraph state machine
-- [ ] ReAct reasoning loop
-- [ ] Tool registry (standardized interfaces)
-- [ ] Quality evaluation system
-- [ ] Iteration logic
-
-### Agent Capabilities
+### Architecture Overview
 
 ```
 User Request
      ↓
-LLM 理解意圖
+[1] Thinking Module → Understand intent, decompose task
      ↓
-RAG 檢索資料 (角色、場景、過往作品)
+[2] RAG Usage Module → Retrieve character/style/context
      ↓
-Agent 規劃步驟
+[3] Web Search Module (if needed) → Get latest information
      ↓
-執行工具 (圖像、語音、剪輯)
+[4] Reasoning Module → Plan execution (ReAct, CoT)
      ↓
-LLM 評估品質
+[5] Tool Calling Module → Select tools (SDXL, GPT-SoVITS, etc.)
      ↓
-Agent 決定迭代或完成
+[6] Function Calling Module → Execute functions with validation
      ↓
-輸出最終作品
+[7] Multi-Step Reasoning → Execute workflow with iteration
+     ↓
+LLM Decision Engine → Evaluate quality, decide next action
+     ↓
+Final Result (or iterate if quality < threshold)
+```
+
+### Sub-Modules Detailed
+
+#### Sub-Module 1: Thinking Module
+**Purpose:** Intent understanding and task decomposition
+
+**Key Classes:**
+- `ThinkingModule` - LLM-powered thinking and reflection
+- `Thought` - Single reasoning thought record
+- `TaskDecomposition` - Task breakdown with dependencies
+
+**Capabilities:**
+- Understand complex, ambiguous user requests
+- Decompose into actionable sub-tasks
+- Maintain conversation context
+- Generate reasoning traces for transparency
+
+#### Sub-Module 2: Reasoning Module
+**Purpose:** Multi-strategy reasoning (ReAct, CoT, ToT)
+
+**Key Classes:**
+- `ReasoningModule` - Central reasoning coordinator
+- `ReActReasoner` - Reason + Act interleaved execution
+- `ChainOfThoughtReasoner` - Step-by-step explicit reasoning
+- `ReasoningTrace` - Complete reasoning record
+
+**Strategies:**
+- **ReAct**: Interleaved reasoning and action
+- **Chain-of-Thought**: Explicit step-by-step reasoning
+- **Tree-of-Thoughts**: Explore multiple reasoning paths
+- **Reflexion**: Execute, reflect, refine
+
+#### Sub-Module 3: Web Search Module
+**Purpose:** Real-time information retrieval from web
+
+**Key Classes:**
+- `WebSearchModule` - Web search and content extraction
+- `SearchResult` - Single search result with relevance
+- `WebContent` - Extracted and cleaned web content
+
+**Capabilities:**
+- DuckDuckGo search (privacy-respecting)
+- LLM-powered relevance ranking
+- Content extraction and cleaning
+- Multi-source information synthesis
+
+#### Sub-Module 4: RAG Usage Module
+**Purpose:** Local knowledge base retrieval
+
+**Key Classes:**
+- `RAGUsageModule` - ChromaDB-based retrieval
+- `RetrievalResult` - Single retrieval result
+
+**Knowledge Sources:**
+- Character knowledge (appearance, personality)
+- Style guides (animation styles, lighting)
+- Past generations (successful prompts, quality scores)
+- Film analysis (scenes, compositions)
+
+#### Sub-Module 5: Tool Calling Module
+**Purpose:** LLM-powered tool selection and execution
+
+**Key Classes:**
+- `ToolCallingModule` - Tool orchestrator
+- `ToolRegistry` - Central tool registry
+- `Tool` - Tool definition with metadata
+- `ToolCall` - Tool execution record
+
+**Capabilities:**
+- LLM selects best tool for task
+- Hardware-aware execution (RTX 5080 16GB)
+- Tool dependency resolution
+- Error handling and retry logic
+
+#### Sub-Module 6: Function Calling Module
+**Purpose:** Type-safe function calling interface
+
+**Key Classes:**
+- `FunctionCallingModule` - Function orchestrator
+- `FunctionRegistry` - Auto-generate schemas from type hints
+- `FunctionDefinition` - OpenAI-compatible function schema
+- `FunctionCall` - Function execution record
+
+**Capabilities:**
+- Auto-generate JSON schemas from Python type hints
+- Type-safe argument validation
+- OpenAI-compatible function calling
+- Conversation with functions
+
+#### Sub-Module 7: Multi-Step Reasoning Module
+**Purpose:** Stateful multi-step workflow execution
+
+**Key Classes:**
+- `MultiStepReasoningModule` - Workflow executor
+- `Workflow` - Complete multi-step workflow
+- `WorkflowStep` - Single workflow step
+- `StepStatus` - Step execution status
+
+**Capabilities:**
+- Plan multi-step workflows with dependencies
+- Quality-driven iteration (retry if quality < threshold)
+- Dynamic re-planning based on intermediate results
+- Stateful context maintenance across steps
+
+### Deliverables
+
+#### Phase 1: Core Infrastructure
+- [ ] Set up agent directory structure
+- [ ] Create base classes and data structures
+- [ ] Implement LangGraph integration
+- [ ] Set up configuration system
+
+#### Phase 2: Individual Sub-Modules
+- [ ] Implement Thinking Module
+  - [ ] Intent understanding
+  - [ ] Task decomposition
+  - [ ] Reflection capabilities
+- [ ] Implement Reasoning Module
+  - [ ] ReAct reasoner
+  - [ ] Chain-of-Thought reasoner
+  - [ ] Adaptive strategy selection
+- [ ] Implement Web Search Module
+  - [ ] DuckDuckGo integration
+  - [ ] Content extraction
+  - [ ] LLM-powered synthesis
+- [ ] Implement RAG Usage Module
+  - [ ] ChromaDB integration
+  - [ ] Character/style retrieval
+  - [ ] Context synthesis
+- [ ] Implement Tool Calling Module
+  - [ ] Tool registry
+  - [ ] LLM-powered tool selection
+  - [ ] Hardware-aware execution
+- [ ] Implement Function Calling Module
+  - [ ] Function registry with schema generation
+  - [ ] Type-safe execution
+  - [ ] Conversation with functions
+- [ ] Implement Multi-Step Reasoning Module
+  - [ ] Workflow planning
+  - [ ] Quality-driven iteration
+  - [ ] Dynamic re-planning
+
+#### Phase 3: Integration
+- [ ] Implement LLM Decision Engine
+- [ ] Create end-to-end workflows
+- [ ] Integration testing with real tasks
+
+#### Phase 4: Testing & Optimization
+- [ ] Unit tests for each sub-module
+- [ ] Integration tests for workflows
+- [ ] Performance optimization
+- [ ] VRAM usage optimization
+
+### Agent Capabilities
+
+**Creative Decision-Making:**
+- "Should I use ControlNet for pose consistency?"
+- "Does this image match the character description?"
+- "Which voice emotion best fits this dialogue context?"
+
+**Technical Decision-Making:**
+- "Should I switch from LLM to SDXL model now?"
+- "Do I need more context from RAG before proceeding?"
+- "Should I re-generate or refine existing output?"
+
+**Quality Assessment:**
+- "Is this image quality acceptable?"
+- "Does the voice match the emotion and character?"
+- "Should I iterate again or move to next step?"
+
+### Configuration
+
+```yaml
+# configs/agent/agent_framework_config.yaml
+
+agent_framework:
+  llm:
+    primary_model: "qwen-14b"
+    vision_model: "qwen-vl-7b"
+    coder_model: "qwen-coder-7b"
+    temperature: 0.5
+
+  thinking_module:
+    temperature: 0.7
+    confidence_threshold: 0.7
+
+  reasoning_module:
+    default_strategy: "react"
+    max_iterations: 10
+
+  web_search_module:
+    search_engine: "duckduckgo"
+    max_results: 5
+
+  rag_module:
+    embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+    top_k: 5
+
+  tool_calling_module:
+    max_concurrent_tools: 1  # RTX 5080 16GB
+
+  multi_step_reasoning_module:
+    quality_threshold: 0.7
+    max_iterations_per_step: 3
 ```
 
 ### Dependencies
 
-- **Requires:** LLM Backend, RAG System, Image Generation, Voice Synthesis
-- **Blocks:** Video Editing, Creative Studio
+- **Requires:** Module 1 (LLM Backend), Module 5 (RAG System)
+- **Optional Tools:** Module 2 (Image Gen), Module 3 (Voice), Module 4 (Model Manager)
+- **Blocks:** Module 8 (Video Editing), Module 9 (Creative Studio)
 - **Critical:** The "brain" that orchestrates all other modules
+
+### Reference
+
+Complete architecture documentation with all class signatures, usage examples, and implementation details: **[docs/modules/agent-framework.md](agent-framework.md)**
 
 ---
 
