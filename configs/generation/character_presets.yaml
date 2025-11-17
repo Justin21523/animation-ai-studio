@@ -1,0 +1,211 @@
+# Character Presets Configuration
+# Animation AI Studio - Image Generation Module
+#
+# Defines character-specific generation presets with:
+# - Reference images for consistency checking
+# - Default LoRAs and weights
+# - Recommended prompts and negative prompts
+# - Scene presets
+
+# Character presets
+characters:
+  # Luca Paguro (Pixar's Luca)
+  luca:
+    display_name: "Luca Paguro"
+    film: "luca"
+    type: "main_character"
+
+    # Reference images for consistency checking
+    reference_images:
+      - "data/films/luca/characters/luca_ref_1.jpg"
+      - "data/films/luca/characters/luca_ref_2.jpg"
+      - "data/films/luca/characters/luca_ref_3.jpg"
+
+    # Default appearance description
+    appearance:
+      hair: "brown, curly"
+      eyes: "green"
+      build: "slim, teenage boy"
+      distinctive_features: "curious expression, friendly smile"
+
+    # Default LoRAs
+    default_loras:
+      - name: "luca"
+        weight: 0.8
+      - name: "pixar_3d_style"
+        weight: 0.6
+
+    # Default prompts
+    prompts:
+      base: "luca, boy with brown hair and green eyes, pixar style, 3d animation"
+      positive_traits: "curious, friendly, expressive, warm smile"
+
+    # Recommended scenes
+    scenes:
+      beach:
+        description: "on italian beach, summer day, warm lighting"
+        additional_loras:
+          - name: "italian_beach"
+            weight: 0.7
+          - name: "warm_summer_lighting"
+            weight: 0.5
+
+      town:
+        description: "in Portorosso town, colorful buildings"
+        additional_loras:
+          - name: "portorosso_town"
+            weight: 0.7
+
+      underwater:
+        description: "underwater, sea monster form, scales, glowing"
+        additional_loras: []
+
+    # Consistency validation
+    consistency:
+      threshold: 0.65
+      min_similarity: 0.60
+      embedding_path: "data/character_embeddings/luca_embedding.npy"
+
+  # Alberto Scorfano (Pixar's Luca)
+  alberto:
+    display_name: "Alberto Scorfano"
+    film: "luca"
+    type: "main_character"
+
+    reference_images:
+      - "data/films/luca/characters/alberto_ref_1.jpg"
+      - "data/films/luca/characters/alberto_ref_2.jpg"
+      - "data/films/luca/characters/alberto_ref_3.jpg"
+
+    appearance:
+      hair: "dark green, wavy"
+      eyes: "blue"
+      build: "athletic, teenage boy"
+      distinctive_features: "confident expression, mischievous smile"
+
+    default_loras:
+      - name: "alberto"
+        weight: 0.8
+      - name: "pixar_3d_style"
+        weight: 0.6
+
+    prompts:
+      base: "alberto, boy with green hair and blue eyes, pixar style, 3d animation"
+      positive_traits: "confident, adventurous, energetic, charming smile"
+
+    scenes:
+      beach:
+        description: "on italian beach, summer day, warm lighting"
+        additional_loras:
+          - name: "italian_beach"
+            weight: 0.7
+
+      vespa:
+        description: "riding vespa, dynamic pose, excited expression"
+        additional_loras:
+          - name: "running_pose"
+            weight: 0.6
+
+    consistency:
+      threshold: 0.65
+      min_similarity: 0.60
+      embedding_path: "data/character_embeddings/alberto_embedding.npy"
+
+# Scene presets (character-agnostic)
+scenes:
+  italian_beach:
+    description: "italian riviera beach, rocky shoreline, clear blue water, summer day"
+    loras:
+      - name: "italian_beach"
+        weight: 0.7
+      - name: "warm_summer_lighting"
+        weight: 0.5
+    style: "pixar_3d"
+
+  portorosso_town:
+    description: "italian seaside town, colorful buildings, narrow streets, coastal architecture"
+    loras:
+      - name: "portorosso_town"
+        weight: 0.7
+    style: "pixar_3d"
+
+  sunset_beach:
+    description: "beach at sunset, golden hour, warm orange and pink sky, dramatic lighting"
+    loras:
+      - name: "warm_summer_lighting"
+        weight: 0.7
+    style: "pixar_3d"
+
+# Generation presets
+generation_presets:
+  character_portrait:
+    description: "High-quality character portrait"
+    width: 1024
+    height: 1024
+    quality_preset: "high"
+    controlnet:
+      enabled: false
+
+  character_full_body:
+    description: "Full body character shot"
+    width: 768
+    height: 1280
+    quality_preset: "high"
+    controlnet:
+      enabled: true
+      type: "pose"
+      conditioning_scale: 0.9
+
+  character_action:
+    description: "Character in dynamic action pose"
+    width: 1024
+    height: 1024
+    quality_preset: "standard"
+    controlnet:
+      enabled: true
+      type: "pose"
+      conditioning_scale: 0.85
+
+  scene_wide:
+    description: "Wide scene shot with character"
+    width: 1280
+    height: 768
+    quality_preset: "standard"
+    controlnet:
+      enabled: false
+
+# Batch generation settings
+batch_generation:
+  default_batch_size: 4
+  quality_filter:
+    enable_consistency_check: true
+    min_similarity: 0.65
+    keep_all_if_none_pass: false
+
+  variation_settings:
+    seed_increment: 1  # Increment seed by 1 for each image
+    prompt_variations:
+      enable: false
+      variation_strength: 0.2
+
+# Output settings
+output:
+  save_reference_comparison: true  # Save side-by-side with reference
+  save_consistency_scores: true  # Save JSON with scores
+  organize_by_character: true  # outputs/{character}/{timestamp}/
+  organize_by_scene: false  # Alternative: outputs/{scene}/{character}/
+
+# Quality thresholds
+quality_thresholds:
+  consistency:
+    excellent: 0.80
+    good: 0.70
+    acceptable: 0.65
+    poor: 0.50
+
+  # Auto-filtering
+  auto_filter:
+    enable: true
+    min_threshold: 0.65
+    save_rejected: true  # Save rejected images to separate folder
+    rejected_folder: "rejected"
