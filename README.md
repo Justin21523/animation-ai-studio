@@ -2,8 +2,8 @@
 
 **Advanced LLM-Driven AI Platform for 3D Animation Creation**
 
-[![Status](https://img.shields.io/badge/Status-Week%203--4%20In%20Progress-yellow)](docs/reports/project-milestones.md)
-[![Phase](https://img.shields.io/badge/Phase-25%25%20Complete-blue)](docs/reports/project-milestones.md)
+[![Status](https://img.shields.io/badge/Module-Image%20Generation%20In%20Progress-yellow)](docs/modules/module-progress.md)
+[![Completion](https://img.shields.io/badge/Overall-20%25%20Complete-blue)](docs/modules/module-progress.md)
 
 ---
 
@@ -14,13 +14,13 @@
 ### Core Architecture: LLM + RAG + Agent (缺一不可)
 
 ```
-Week 7-8: AI Video Editing (大壓軸) - AI 自主創作影片
+Creative Studio (大壓軸) - AI 自主創作影片
     ↓
-Week 5-6: LangGraph Agent + RAG - LLM 理解意圖 + RAG 檢索資料 + Agent 決策
+Agent Framework + RAG - LLM 理解意圖 + RAG 檢索資料 + Agent 決策
     ↓
-Week 3-4: 3D Character Tools - SDXL + LoRA + ControlNet + GPT-SoVITS (IN PROGRESS)
+Generation Tools - SDXL + LoRA + ControlNet + GPT-SoVITS (IN PROGRESS)
     ↓
-Week 1-2: LLM Backend - vLLM + FastAPI + Redis + Docker (COMPLETE ✅)
+LLM Backend - vLLM + FastAPI + Redis + Docker (COMPLETE ✅)
 ```
 
 ### Key Features
@@ -43,26 +43,31 @@ Week 1-2: LLM Backend - vLLM + FastAPI + Redis + Docker (COMPLETE ✅)
 
 ### For Project Context
 
-1. **[docs/architecture/project-architecture.md](docs/architecture/project-architecture.md)** - Overall architecture and implementation plan
-2. **[LLM_PROVIDER.md](LLM_PROVIDER.md)** - Complete project instructions
-3. **[docs/reports/project-milestones.md](docs/reports/project-milestones.md)** - Current progress
+1. **[docs/modules/module-progress.md](docs/modules/module-progress.md)** - Current implementation progress
+2. **[docs/architecture/project-architecture.md](docs/architecture/project-architecture.md)** - Overall architecture
+3. **[LLM_PROVIDER.md](LLM_PROVIDER.md)** - Complete project instructions
 
 ---
 
-## 📊 Current Status
+## 📊 Module Status
 
-**Phase:** Week 3-4 - 3D Character Generation Tools (IN PROGRESS)
+**Overall Completion:** 20% (2 of 9 modules complete/in-progress)
 
-**Progress:** 25% Complete (Week 1-2 of 8)
+| Module | Status | Completion | VRAM | Dependencies |
+|--------|--------|------------|------|--------------|
+| **LLM Backend** | ✅ Complete | 100% | 12-14GB | None |
+| **Image Generation** | 🔄 In Progress | 15% | 13-15GB | LLM Backend |
+| **Voice Synthesis** | 📋 Planned | 0% | 3-4GB | LLM Backend |
+| **Model Manager** | 📋 Planned | 0% | - | LLM Backend |
+| **RAG System** | 📋 Planned | 0% | Minimal | LLM Backend |
+| **Agent Framework** | 📋 Planned | 0% | Uses LLM | RAG, Image Gen, Voice |
+| **Video Analysis** | 📋 Planned | 0% | Varies | None |
+| **Video Editing** | 📋 Planned | 0% | Varies | Agent Framework |
+| **Creative Studio** | 📋 Planned | 0% | - | All modules |
 
-| Week | Goal | Status |
-|------|------|--------|
-| 1-2 | LLM Backend Foundation | ✅ COMPLETE |
-| 3-4 | 3D Character Tools | 🔄 IN PROGRESS |
-| 5-6 | Agent Framework | 📋 PENDING |
-| 7-8 | Integration (大壓軸) | 📋 PENDING |
+**Status Legend:** ✅ Complete | 🔄 In Progress | 📋 Planned
 
-**Details:** See [docs/reports/project-milestones.md](docs/reports/project-milestones.md)
+**Details:** See [docs/modules/module-progress.md](docs/modules/module-progress.md)
 
 ---
 
@@ -71,7 +76,7 @@ Week 1-2: LLM Backend - vLLM + FastAPI + Redis + Docker (COMPLETE ✅)
 **CRITICAL:** RTX 5080 16GB VRAM (single GPU)
 
 ```yaml
-CPU: AMD Ryzen 9 9950X (16 cores)
+CPU: AMD Ryzen 9 9950X (16 cores, 32 threads)
 RAM: 64GB DDR5
 GPU: NVIDIA RTX 5080 16GB VRAM
 PyTorch: 2.7.0 + CUDA 12.8 (IMMUTABLE)
@@ -83,6 +88,8 @@ Environment: conda ai_env
 - Dynamic model switching supported (20-35s)
 - PyTorch SDPA only (xformers FORBIDDEN)
 
+**See:** [docs/reference/hardware-optimization.md](docs/reference/hardware-optimization.md)
+
 ---
 
 ## 🗂️ Project Structure
@@ -90,27 +97,27 @@ Environment: conda ai_env
 ```
 animation-ai-studio/
 ├── docs/                       # 📚 All documentation
-│   ├── architecture/           # Project architecture and design
+│   ├── architecture/           # Module architecture and design
 │   ├── guides/                 # User guides and onboarding
-│   ├── reports/                # Weekly completion reports
+│   ├── modules/                # Module implementation status
 │   └── reference/              # Technical reference
-├── llm_backend/                # ✅ Week 1-2: LLM services
+├── llm_backend/                # ✅ LLM Backend (Complete)
 │   ├── gateway/                # FastAPI Gateway
 │   ├── services/               # vLLM configurations
 │   ├── docker/                 # Docker orchestration
 │   └── scripts/                # Management scripts
 ├── scripts/
 │   ├── core/                   # Shared utilities
-│   │   ├── llm_client/         # ✅ LLM client
-│   │   └── generation/         # 🔄 Model manager (Week 3-4)
-│   ├── generation/             # 🔄 Image generation (Week 3-4)
-│   ├── synthesis/              # 🔄 Voice synthesis (Week 3-4)
-│   ├── ai_editing/             # 📋 Agent framework (Week 5-8)
+│   │   ├── llm_client/         # ✅ LLM client (Complete)
+│   │   └── generation/         # 🔄 Model manager (Planned)
+│   ├── generation/             # 🔄 Image generation (In Progress)
+│   ├── synthesis/              # 📋 Voice synthesis (Planned)
+│   ├── ai_editing/             # 📋 Agent framework (Planned)
 │   ├── analysis/               # Video, audio, image analysis
 │   └── applications/           # End-user applications
 ├── configs/
-│   ├── generation/             # 🔄 Generation configs (Week 3-4)
-│   └── agent/                  # 📋 Agent configs (Week 5-6)
+│   ├── generation/             # 🔄 Generation configs (In Progress)
+│   └── agent/                  # 📋 Agent configs (Planned)
 ├── data/films/                 # Character metadata (shared with LoRA pipeline)
 ├── outputs/                    # Generated content
 ├── requirements/               # Modular dependencies
@@ -137,9 +144,9 @@ animation-ai-studio/
 
 ```
 models/
-├── llm/           # LLM models (Week 1-2)
-├── diffusion/     # SDXL, ControlNet (Week 3-4)
-├── tts/           # GPT-SoVITS models (Week 3-4)
+├── llm/           # LLM models (Qwen2.5)
+├── diffusion/     # SDXL, ControlNet
+├── tts/           # GPT-SoVITS models
 └── cv/            # Computer vision models
 
 cache/
@@ -152,7 +159,7 @@ cache/
 
 ## 🎬 Usage Examples
 
-### Week 1-2: LLM Backend (READY ✅)
+### LLM Backend (✅ Ready)
 
 ```bash
 # Start LLM services (interactive model selection)
@@ -178,10 +185,10 @@ asyncio.run(main())
 "
 ```
 
-### Week 3-4: Character Generation (IN PROGRESS 🔄)
+### Image Generation (🔄 Coming Soon)
 
 ```python
-# Image generation (coming soon)
+# Character generation with LoRA
 from scripts.generation.image import CharacterGenerator
 
 generator = CharacterGenerator()
@@ -190,8 +197,12 @@ result = await generator.generate_character(
     scene="running on the beach, excited expression",
     quality="high"
 )
+```
 
-# Voice synthesis (coming soon)
+### Voice Synthesis (📋 Coming Soon)
+
+```python
+# Character voice synthesis
 from scripts.synthesis.tts import GPTSoVITSWrapper
 
 synthesizer = GPTSoVITSWrapper()
@@ -209,21 +220,20 @@ audio = await synthesizer.synthesize(
 ### Essential Reading
 
 1. **[LLM_PROVIDER.md](LLM_PROVIDER.md)** - Complete project instructions for LLMProvider Tooling
-2. **[docs/architecture/project-architecture.md](docs/architecture/project-architecture.md)** - Overall architecture
+2. **[docs/modules/module-progress.md](docs/modules/module-progress.md)** - Current implementation status
 3. **[docs/guides/llm-provider-tooling-onboarding.md](docs/guides/llm-provider-tooling-onboarding.md)** - Quick start guide
-4. **[OPEN_SOURCE_MODELS.md](OPEN_SOURCE_MODELS.md)** - Models reference
+4. **[docs/reference/hardware-optimization.md](docs/reference/hardware-optimization.md)** - VRAM management
 
-### Implementation Guides
+### Module Documentation
 
-- **[docs/reports/week-1-2-completion.md](docs/reports/week-1-2-completion.md)** - Week 1-2 completion report
-- **[docs/reports/week-3-4-plan.md](docs/reports/week-3-4-plan.md)** - Week 3-4 implementation plan
-- **[docs/reports/project-milestones.md](docs/reports/project-milestones.md)** - Progress tracking
+- **[docs/modules/image-generation.md](docs/modules/image-generation.md)** - Image generation architecture
+- **[docs/modules/voice-synthesis.md](docs/modules/voice-synthesis.md)** - Voice synthesis architecture
+- **[docs/modules/llm-backend-completion.md](docs/modules/llm-backend-completion.md)** - LLM backend completion report
 
-### Technical Reference
+### Architecture Docs
 
+- **[docs/architecture/project-architecture.md](docs/architecture/project-architecture.md)** - Overall architecture
 - **[docs/architecture/llm-backend.md](docs/architecture/llm-backend.md)** - LLM backend architecture
-- **[llm_backend/README.md](llm_backend/README.md)** - LLM backend usage guide
-- **[llm_backend/HARDWARE_SPECS.md](llm_backend/HARDWARE_SPECS.md)** - Hardware specifications
 
 ---
 
@@ -236,7 +246,7 @@ audio = await synthesizer.synthesize(
 **Purpose:** Train LoRA adapters for character/background/pose generation
 
 **Current Status:**
-- Luca SAM2 segmentation: 14.8% (約 43h remaining)
+- Luca SAM2 segmentation: 14.8% (~43h remaining)
 - Next: LaMa inpainting → Batch process 6 films
 
 **Integration:**
@@ -249,7 +259,7 @@ audio = await synthesizer.synthesize(
 
 ### MUST Use (Open-Source Only)
 
-- ✅ Qwen2.5-VL, Qwen2.5-14B (LLM)
+- ✅ Qwen2.5-VL, Qwen2.5-14B, Qwen2.5-Coder (LLM)
 - ✅ vLLM (self-hosted backend)
 - ✅ SDXL + LoRA (image generation)
 - ✅ GPT-SoVITS (voice synthesis)
@@ -301,7 +311,9 @@ Autonomous workflow execution:
 
 **For Architecture:** [docs/architecture/project-architecture.md](docs/architecture/project-architecture.md)
 
-**For Current Status:** [docs/reports/project-milestones.md](docs/reports/project-milestones.md)
+**For Current Status:** [docs/modules/module-progress.md](docs/modules/module-progress.md)
+
+**For Hardware:** [docs/reference/hardware-optimization.md](docs/reference/hardware-optimization.md)
 
 **For Models:** [OPEN_SOURCE_MODELS.md](OPEN_SOURCE_MODELS.md)
 
@@ -309,12 +321,17 @@ Autonomous workflow execution:
 
 ## 📊 Progress
 
-**Version:** v0.2.0
-**Last Updated:** 2025-11-16
-**Current Phase:** Week 3-4 (3D Character Tools)
-**Completion:** 25% (Week 1-2 of 8)
+**Version:** v0.3.0
+**Last Updated:** 2025-11-17
+**Current Focus:** Image Generation Module (15%)
+**Overall Completion:** 20% (2 of 9 modules)
 
-**See [docs/reports/project-milestones.md](docs/reports/project-milestones.md) for detailed progress tracking.**
+**Module Status:**
+- ✅ LLM Backend (100%)
+- 🔄 Image Generation (15%)
+- 📋 Voice Synthesis, Model Manager, RAG, Agent Framework, Video Analysis, Video Editing, Creative Studio (0%)
+
+**See [docs/modules/module-progress.md](docs/modules/module-progress.md) for detailed progress tracking.**
 
 ---
 
