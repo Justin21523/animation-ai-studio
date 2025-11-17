@@ -23,6 +23,7 @@ class ToolCategory(Enum):
     IMAGE_GENERATION = "image_generation"
     VOICE_SYNTHESIS = "voice_synthesis"
     KNOWLEDGE_RETRIEVAL = "knowledge_retrieval"
+    VIDEO_ANALYSIS = "video_analysis"
     ANALYSIS = "analysis"
     UTILITY = "utility"
 
@@ -312,6 +313,10 @@ def create_default_tool_registry() -> ToolRegistry:
         estimated_vram_gb=0.0,
         estimated_time_seconds=1.0
     ))
+
+    # Video Analysis Tools
+    from scripts.agent.tools.video_analysis_tools import register_video_analysis_tools
+    register_video_analysis_tools(registry)
 
     logger.info(f"Created default tool registry with {len(registry.tools)} tools")
     return registry
