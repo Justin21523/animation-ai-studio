@@ -29,6 +29,7 @@ from scripts.agent.reasoning.reasoning_module import ReasoningModule
 from scripts.agent.tools.tool_calling_module import ToolCallingModule
 from scripts.agent.functions.function_calling_module import FunctionCallingModule, generate_image, synthesize_voice
 from scripts.agent.multi_step.multi_step_module import MultiStepModule
+from scripts.agent.web_search.web_search_module import WebSearchModule
 
 
 # Configure logging
@@ -234,25 +235,61 @@ async def test_multi_step_module():
                 print(f"      Quality: {step.quality_score:.2f}")
 
 
-async def test_agent_integration():
-    """Test Agent with full Phase 2 integration"""
+async def test_web_search_module():
+    """Test Web Search Module"""
     print("\n" + "=" * 80)
-    print("TEST 5: Agent Integration (Phase 1 + Phase 2)")
+    print("TEST 5: Web Search Module")
     print("=" * 80)
 
-    # Configure agent with Phase 2 features enabled
+    async with WebSearchModule() as search:
+        # Test 5.1: Basic web search
+        print("\n--- Test 5.1: Web Search ---")
+        response = await search.search(
+            query="Latest Pixar animation techniques 2025",
+            count=5,
+            rank_results=True
+        )
+
+        print(f"✅ Web search completed:")
+        print(f"   Source: {response.source}")
+        print(f"   Results: {response.total_results}")
+        print(f"   Time: {response.search_time:.2f}s")
+
+        if response.results:
+            print(f"\n   Top 3 results:")
+            for i, result in enumerate(response.results[:3], 1):
+                print(f"   {i}. {result.title}")
+                print(f"      URL: {result.url}")
+                print(f"      Relevance: {result.relevance_score:.2f}")
+
+        # Test 5.2: Result synthesis
+        if response.success and response.results:
+            print("\n--- Test 5.2: Result Synthesis ---")
+            summary = await search.synthesize_results(response, max_results=3)
+            print(f"✅ Synthesized summary:")
+            print(f"   {summary[:300]}...")
+
+
+async def test_agent_integration():
+    """Test Agent with full Phase 2 integration + Web Search"""
+    print("\n" + "=" * 80)
+    print("TEST 6: Agent Integration (Phase 1 + Phase 2 + Web Search)")
+    print("=" * 80)
+
+    # Configure agent with all Phase 2 features enabled
     config = AgentConfig(
         enable_rag=True,
         enable_tool_calling=True,
         enable_function_calling=True,
         enable_multi_step=True,
+        enable_web_search=True,
         default_strategy=ReasoningStrategy.CHAIN_OF_THOUGHT,
         enable_reflection=True
     )
 
     async with Agent(config=config) as agent:
-        # Test 5.1: Simple question (Phase 1)
-        print("\n--- Test 5.1: Simple Question (Phase 1 Processing) ---")
+        # Test 6.1: Simple question (Phase 1)
+        print("\n--- Test 6.1: Simple Question (Phase 1 Processing) ---")
         response = await agent.process(
             "Tell me about Luca's appearance and personality"
         )
@@ -263,8 +300,8 @@ async def test_agent_integration():
         print(f"   Reasoning steps: {len(response.reasoning_trace.thoughts)}")
         print(f"   Response (truncated): {response.content[:200]}...")
 
-        # Test 5.2: Advanced processing with CoT
-        print("\n--- Test 5.2: Advanced Processing (CoT) ---")
+        # Test 6.2: Advanced processing with CoT
+        print("\n--- Test 6.2: Advanced Processing (CoT) ---")
         response = await agent.process_advanced(
             "I want to generate an image of Luca running on the beach",
             strategy=ReasoningStrategy.CHAIN_OF_THOUGHT
@@ -276,8 +313,8 @@ async def test_agent_integration():
         print(f"   Total time: {response.reasoning_trace.total_time:.2f}s")
         print(f"   Thoughts: {len(response.reasoning_trace.thoughts)}")
 
-        # Test 5.3: Advanced processing with ReAct
-        print("\n--- Test 5.3: Advanced Processing (ReAct) ---")
+        # Test 6.3: Advanced processing with ReAct
+        print("\n--- Test 6.3: Advanced Processing (ReAct) ---")
         response = await agent.process_advanced(
             "Find information about Alberto and create a character profile",
             strategy=ReasoningStrategy.REACT
@@ -288,8 +325,20 @@ async def test_agent_integration():
         print(f"   Strategy: {response.reasoning_trace.strategy.value}")
         print(f"   Total time: {response.reasoning_trace.total_time:.2f}s")
 
-        # Test 5.4: Conversation history
-        print("\n--- Test 5.4: Conversation History ---")
+        # Test 6.4: Web Search Integration (task that needs web search)
+        print("\n--- Test 6.4: Web Search Integration ---")
+        response = await agent.process_advanced(
+            "What are the latest Pixar animation techniques announced in 2025?",
+            strategy=ReasoningStrategy.CHAIN_OF_THOUGHT
+        )
+
+        print(f"✅ Web search response generated:")
+        print(f"   Success: {response.success}")
+        print(f"   Used web search: {any('web' in t.content.lower() for t in response.reasoning_trace.thoughts)}")
+        print(f"   Total time: {response.reasoning_trace.total_time:.2f}s")
+
+        # Test 6.5: Conversation history
+        print("\n--- Test 6.5: Conversation History ---")
         history = agent.get_conversation_history()
         print(f"✅ Conversation history: {len(history)} messages")
         for msg in history[-3:]:  # Show last 3 messages
@@ -299,9 +348,9 @@ async def test_agent_integration():
 
 
 async def run_all_tests():
-    """Run all Phase 2 tests"""
+    """Run all Phase 2 + Web Search tests"""
     print("\n" + "=" * 80)
-    print("AGENT FRAMEWORK PHASE 2 - COMPREHENSIVE TEST SUITE")
+    print("AGENT FRAMEWORK PHASE 2 + WEB SEARCH - COMPREHENSIVE TEST SUITE")
     print("=" * 80)
 
     try:
@@ -309,20 +358,22 @@ async def run_all_tests():
         await test_tool_calling_module()
         await test_function_calling_module()
         await test_multi_step_module()
+        await test_web_search_module()
         await test_agent_integration()
 
         print("\n" + "=" * 80)
         print("✅ ALL TESTS COMPLETED SUCCESSFULLY")
         print("=" * 80)
 
-        print("\nPhase 2 Module Summary:")
+        print("\nPhase 2 + Web Search Module Summary:")
         print("  ✅ Reasoning Module (ReAct, CoT, ToT)")
         print("  ✅ Tool Calling Module")
         print("  ✅ Function Calling Module")
         print("  ✅ Multi-Step Module")
+        print("  ✅ Web Search Module (Brave + DuckDuckGo)")
         print("  ✅ Agent Orchestrator Integration")
 
-        print("\nAll Phase 2 modules are functioning correctly!")
+        print("\nAll Phase 2 + Web Search modules are functioning correctly!")
 
     except Exception as e:
         print(f"\n❌ TEST FAILED: {str(e)}")
