@@ -1,11 +1,11 @@
 # Claude Code Onboarding Guide
 
 **Purpose:** Quick-start guide for new Claude Code sessions
-**Last Updated:** 2025-11-16
+**Last Updated:** 2025-11-17
 **Languages:** English (primary), Traditional Chinese (marked sections)
 
 > **Consolidated Documentation**
-> This document integrates HOW_TO_START.md + TELL_CLAUDE_CODE.md to provide bilingual onboarding instructions for Claude Code.
+> This document provides bilingual onboarding instructions for Claude Code, organized by modules rather than time periods.
 
 ---
 
@@ -28,10 +28,10 @@ Hardware: RTX 5080 16GB VRAM (single GPU)
 PyTorch: 2.7.0 + CUDA 12.8 (IMMUTABLE)
 
 Please read in order:
-1. docs/architecture/project-architecture.md - Overall architecture
-2. CLAUDE.md - Complete project instructions
-3. OPEN_SOURCE_MODELS.md - All models and tools
-4. docs/reports/week-1-2-completion.md - Week 1-2 status
+1. docs/modules/module-progress.md - Current module status
+2. docs/architecture/project-architecture.md - Overall architecture
+3. CLAUDE.md - Complete project instructions
+4. OPEN_SOURCE_MODELS.md - All models and tools
 
 Current working directory: /mnt/c/AI_LLM_projects/animation-ai-studio
 
@@ -56,10 +56,10 @@ My task: [describe what you want to work on]
 PyTorch: 2.7.0 + CUDA 12.8 (絕對不可修改)
 
 請先閱讀這些文檔 (按順序):
-1. docs/architecture/project-architecture.md - 專案整體架構
-2. CLAUDE.md - 完整專案指南
-3. OPEN_SOURCE_MODELS.md - 所有工具清單
-4. docs/reports/week-1-2-completion.md - Week 1-2 完成狀態
+1. docs/modules/module-progress.md - 當前模組狀態
+2. docs/architecture/project-architecture.md - 專案整體架構
+3. CLAUDE.md - 完整專案指南
+4. OPEN_SOURCE_MODELS.md - 所有工具清單
 
 當前工作目錄: /mnt/c/AI_LLM_projects/animation-ai-studio
 
@@ -87,13 +87,13 @@ PyTorch: 2.7.0 + CUDA 12.8 (絕對不可修改)
 ### Architecture: LLM + RAG + Agent (缺一不可)
 
 ```
-Week 7-8: AI Video Editing (大壓軸)
-           ↓ 整合所有組件
-Week 5-6: LangGraph Agent + RAG (核心決策)
+Creative Studio (大壓軸)
+           ↓ 整合所有模組
+Agent Framework + RAG (核心決策)
            ↓ 調用工具
-Week 3-4: 3D Character Tools (工具庫)
+Generation Tools (工具庫) - Current Focus
            ↓ 使用推理服務
-Week 1-2: LLM Backend (基礎設施) ✅
+LLM Backend (基礎設施) ✅ Complete
 ```
 
 **English:**
@@ -113,20 +113,23 @@ Week 1-2: LLM Backend (基礎設施) ✅
 ### For Quick Context / 快速了解
 
 1. **This File** - Quick onboarding
-2. **[docs/architecture/project-architecture.md](../architecture/project-architecture.md)** - Overall architecture
-3. **[CLAUDE.md](../../CLAUDE.md)** - Complete project guide
+2. **[docs/modules/module-progress.md](../modules/module-progress.md)** - Current module status
+3. **[docs/architecture/project-architecture.md](../architecture/project-architecture.md)** - Overall architecture
+4. **[CLAUDE.md](../../CLAUDE.md)** - Complete project guide
 
 ### For Implementation / 實作時
 
-4. **[docs/reports/week-1-2-completion.md](../reports/week-1-2-completion.md)** - Week 1-2 status
-5. **[docs/reports/week-3-4-plan.md](../reports/week-3-4-plan.md)** - Week 3-4 plan
-6. **[OPEN_SOURCE_MODELS.md](../../OPEN_SOURCE_MODELS.md)** - Models reference
+5. **[docs/modules/llm-backend-completion.md](../modules/llm-backend-completion.md)** - LLM Backend completion
+6. **[docs/modules/image-generation.md](../modules/image-generation.md)** - Image generation module
+7. **[docs/modules/voice-synthesis.md](../modules/voice-synthesis.md)** - Voice synthesis module
+8. **[OPEN_SOURCE_MODELS.md](../../OPEN_SOURCE_MODELS.md)** - Models reference
 
 ### For Technical Details / 技術細節
 
-7. **[docs/architecture/llm-backend.md](../architecture/llm-backend.md)** - LLM backend design
-8. **[llm_backend/README.md](../../llm_backend/README.md)** - LLM backend usage
-9. **[llm_backend/HARDWARE_SPECS.md](../../llm_backend/HARDWARE_SPECS.md)** - Hardware specs
+9. **[docs/architecture/llm-backend.md](../architecture/llm-backend.md)** - LLM backend design
+10. **[docs/reference/hardware-optimization.md](../reference/hardware-optimization.md)** - Hardware optimization
+11. **[llm_backend/README.md](../../llm_backend/README.md)** - LLM backend usage
+12. **[llm_backend/HARDWARE_SPECS.md](../../llm_backend/HARDWARE_SPECS.md)** - Hardware specs
 
 ---
 
@@ -156,6 +159,8 @@ Environment: conda ai_env
 - SDXL + LoRA: 13-15GB
 - **一次只能運行一個重型模型**
 - 動態切換需要 20-35 秒
+
+**See:** [docs/reference/hardware-optimization.md](../reference/hardware-optimization.md)
 
 ---
 
@@ -199,9 +204,9 @@ Environment: conda ai_env
 
 ---
 
-## 🎯 Task-Specific Instructions / 針對任務的具體說明
+## 🎯 Module-Specific Instructions / 模組具體說明
 
-### Task 1: Week 1-2 LLM Backend ✅ COMPLETE
+### Module 1: LLM Backend ✅ COMPLETE
 
 **English:**
 ```
@@ -218,7 +223,7 @@ Usage:
 bash llm_backend/scripts/start_all.sh  # Interactive model selection
 bash llm_backend/scripts/health_check.sh  # Check status
 
-Details: See docs/reports/week-1-2-completion.md
+Details: See docs/modules/llm-backend-completion.md
 ```
 
 **繁體中文：**
@@ -236,16 +241,16 @@ Details: See docs/reports/week-1-2-completion.md
 bash llm_backend/scripts/start_all.sh  # 互動式模型選擇
 bash llm_backend/scripts/health_check.sh  # 檢查狀態
 
-詳情：見 docs/reports/week-1-2-completion.md
+詳情：見 docs/modules/llm-backend-completion.md
 ```
 
 ---
 
-### Task 2: Week 3-4 3D Character Tools ⬅️ CURRENT
+### Module 2: Image Generation 🔄 CURRENT (15%)
 
 **English:**
 ```
-Goal: Integrate image/voice generation for 3D characters
+Goal: SDXL-based 3D character image generation
 
 Tasks:
 1. SDXL + LoRA integration
@@ -262,17 +267,12 @@ Tasks:
    - InstantID / ArcFace embeddings
    - Similarity threshold: 0.60-0.65
 
-4. GPT-SoVITS voice synthesis
-   - Voice cloning from film audio
-   - Emotion control
-   - Multi-language support (EN, IT)
-
-Reference: docs/reports/week-3-4-plan.md
+Reference: docs/modules/image-generation.md
 ```
 
 **繁體中文：**
 ```
-目標：整合 3D 角色的圖像/語音生成
+目標：基於 SDXL 的 3D 角色圖像生成
 
 任務：
 1. SDXL + LoRA 整合
@@ -289,44 +289,67 @@ Reference: docs/reports/week-3-4-plan.md
    - InstantID / ArcFace embeddings
    - 相似度門檻: 0.60-0.65
 
-4. GPT-SoVITS 語音合成
-   - 從影片音訊克隆語音
-   - 情緒控制
-   - 多語言支援 (EN, IT)
-
-參考：docs/reports/week-3-4-plan.md
+參考：docs/modules/image-generation.md
 ```
 
 ---
 
-### Task 3: Week 5-6 Agent Framework (FUTURE)
+### Module 3: Voice Synthesis 📋 PLANNED (0%)
 
 **English:**
 ```
-Goal: Build autonomous creative decision system
+Goal: GPT-SoVITS-based character voice synthesis
 
-Core: LLM + RAG + Agent
-- LangGraph state machine
-- ReAct reasoning loop
-- RAG for retrieving character info, past work
-- Tool registry for calling Week 3-4 tools
-- Quality evaluation and iteration
+Tasks:
+1. GPT-SoVITS wrapper implementation
+2. Voice model training pipeline
+3. Voice cloning from film audio
+4. Emotion control
+5. Multi-language support (EN, IT)
 
-Reference: docs/architecture/project-architecture.md
+Reference: docs/modules/voice-synthesis.md
 ```
 
 **繁體中文：**
 ```
-目標：建立自主創意決策系統
+目標：基於 GPT-SoVITS 的角色語音合成
 
-核心：LLM + RAG + Agent
-- LangGraph 狀態機
-- ReAct 推理循環
-- RAG 檢索角色資訊、過往作品
-- 工具註冊系統調用 Week 3-4 工具
-- 品質評估與迭代
+任務：
+1. GPT-SoVITS 包裝器實作
+2. 語音模型訓練管道
+3. 從影片音訊克隆語音
+4. 情緒控制
+5. 多語言支援 (EN, IT)
 
-參考：docs/architecture/project-architecture.md
+參考：docs/modules/voice-synthesis.md
+```
+
+---
+
+### Module 4-9: Future Modules 📋 PLANNED
+
+**English:**
+```
+4. Model Manager - Dynamic VRAM management
+5. RAG System - Context retrieval
+6. Agent Framework - LangGraph + ReAct reasoning
+7. Video Analysis - Scene detection, composition
+8. Video Editing - AI-powered editing
+9. Creative Studio - End-to-end video creation (大壓軸)
+
+Reference: docs/modules/module-progress.md
+```
+
+**繁體中文：**
+```
+4. Model Manager - 動態 VRAM 管理
+5. RAG System - 上下文檢索
+6. Agent Framework - LangGraph + ReAct 推理
+7. Video Analysis - 場景檢測、構圖
+8. Video Editing - AI 驅動的剪輯
+9. Creative Studio - 端到端影片創作 (大壓軸)
+
+參考：docs/modules/module-progress.md
 ```
 
 ---
@@ -344,9 +367,9 @@ Film Data / 影片資料:
 
 AI Warehouse / AI 倉庫:
   Models: /mnt/c/AI_LLM_projects/ai_warehouse/models/
-    ├── llm/         # LLM models
-    ├── diffusion/   # SDXL, ControlNet
-    ├── tts/         # GPT-SoVITS
+    ├── llm/         # LLM models (Module 1)
+    ├── diffusion/   # SDXL, ControlNet (Module 2)
+    ├── tts/         # GPT-SoVITS (Module 3)
     └── cv/          # Computer vision
 
   Cache: /mnt/c/AI_LLM_projects/ai_warehouse/cache/
@@ -492,6 +515,14 @@ bash llm_backend/scripts/stop_all.sh
 
 ---
 
+### Q: Module progress tracking? / 如何追蹤模組進度？
+
+**English:** See [docs/modules/module-progress.md](../modules/module-progress.md) for real-time status of all 9 modules.
+
+**繁體中文：** 見 [docs/modules/module-progress.md](../modules/module-progress.md) 查看所有 9 個模組的即時狀態。
+
+---
+
 ## ✅ Onboarding Checklist / 入職檢查清單
 
 Before starting work, ensure Claude Code understands:
@@ -503,7 +534,9 @@ Before starting work, ensure Claude Code understands:
 - [ ] LLM as decision engine (not just tool) / LLM 是決策引擎 (不只是工具)
 - [ ] Optimized for 3D animation / 針對 3D 動畫優化
 - [ ] LangGraph for agents / LangGraph 作為 Agent 框架
-- [ ] Week 1-2 COMPLETE, Week 3-4 CURRENT / Week 1-2 完成，Week 3-4 進行中
+- [ ] Module-based organization / 模組化組織
+- [ ] LLM Backend (Module 1) COMPLETE / LLM Backend (模組 1) 完成
+- [ ] Image Generation (Module 2) IN PROGRESS / Image Generation (模組 2) 進行中
 - [ ] Shared resources with LoRA pipeline / 與 LoRA Pipeline 共享資源
 - [ ] Hardware: RTX 5080 16GB (single GPU) / 硬體: RTX 5080 16GB (單一 GPU)
 - [ ] PyTorch 2.7.0 + CUDA 12.8 IMMUTABLE / PyTorch 2.7.0 + CUDA 12.8 不可變
@@ -519,21 +552,23 @@ Before starting work, ensure Claude Code understands:
 - LangGraph: https://langchain-ai.github.io/langgraph/
 - Qwen2.5: https://github.com/QwenLM/Qwen2.5
 - GPT-SoVITS: https://github.com/RVC-Boss/GPT-SoVITS
+- vLLM: https://docs.vllm.ai/
 
 **繁體中文：**
 - LangGraph: https://langchain-ai.github.io/langgraph/
 - Qwen2.5: https://github.com/QwenLM/Qwen2.5
 - GPT-SoVITS: https://github.com/RVC-Boss/GPT-SoVITS
+- vLLM: https://docs.vllm.ai/
 
 ---
 
 **Ready to start? / 準備好開始了嗎？**
 
-**English:** Ask Claude Code to begin with the current task. Refer to [docs/architecture/project-architecture.md](../architecture/project-architecture.md) for overall context.
+**English:** Ask Claude Code to begin with the current module. Refer to [docs/modules/module-progress.md](../modules/module-progress.md) for current status and [docs/architecture/project-architecture.md](../architecture/project-architecture.md) for overall context.
 
-**繁體中文：** 讓 Claude Code 開始當前任務。參考 [docs/architecture/project-architecture.md](../architecture/project-architecture.md) 了解整體內容。
+**繁體中文：** 讓 Claude Code 開始當前模組的工作。參考 [docs/modules/module-progress.md](../modules/module-progress.md) 了解當前狀態，參考 [docs/architecture/project-architecture.md](../architecture/project-architecture.md) 了解整體內容。
 
 ---
 
-**Last Updated:** 2025-11-16
+**Last Updated:** 2025-11-17
 **Maintained By:** Animation AI Studio Team
