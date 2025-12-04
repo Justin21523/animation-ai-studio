@@ -1,0 +1,15 @@
+# Coqui TTS 最小化相容配置
+# 只固定會導致衝突的關鍵包,其他由 TTS 自動處理
+
+# Core TTS - 讓它自動解決依賴
+TTS==0.22.0
+
+# 關鍵相容性包
+transformers==4.33.0
+tokenizers==0.13.3
+
+# Triton + Bitsandbytes 相容組合
+triton==2.1.0
+bitsandbytes==0.41.3
+
+# 其他讓 TTS 自動處理,不固定版本
