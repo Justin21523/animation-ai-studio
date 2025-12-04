@@ -1,0 +1,150 @@
+# COCO to Pascal VOC Format Conversion Configuration
+# 將 COCO 格式標註轉換為 Pascal VOC 格式
+
+# 專案資訊
+project:
+  name: "COCO to Pascal VOC Conversion"
+  description: "Convert COCO format annotations to Pascal VOC XML format"
+  version: "1.0.0"
+
+# 轉換設定
+conversion:
+  # 輸入格式: coco, yolo, voc
+  input_format: coco
+
+  # 輸出格式: coco, yolo, voc
+  output_format: voc
+
+  # COCO 註解檔案路徑
+  input_file: /path/to/annotations.json
+
+  # 輸出目錄（VOC 格式會創建 Annotations/ 和 ImageSets/ 子目錄）
+  output_dir: /path/to/output/voc
+
+  # 影像目錄（用於複製影像到 JPEGImages/）
+  images_dir: /path/to/images
+
+  # 是否複製影像檔案
+  copy_images: false
+
+  # 影像輸出目錄（如果 copy_images 為 true）
+  images_output_dir: /path/to/output/voc/JPEGImages
+
+# VOC 資料集設定
+voc_settings:
+  # 是否創建 ImageSets 分割檔案
+  create_image_sets: true
+
+  # 資料分割比例 [train, val, test]
+  split_ratios:
+    - 0.7  # train
+    - 0.2  # val
+    - 0.1  # test
+
+  # 是否使用分層分割（保持類別比例）
+  stratified_split: true
+
+  # 隨機種子
+  random_seed: 42
+
+  # 資料庫名稱（寫入 XML）
+  database: "Custom Dataset"
+
+  # 是否標記為困難樣本
+  set_difficult: false
+
+  # 困難樣本預設值
+  default_difficult: 0
+
+  # 是否標記為截斷
+  set_truncated: false
+
+  # 截斷樣本預設值
+  default_truncated: 0
+
+  # 是否設置姿態資訊
+  set_pose: false
+
+  # 姿態預設值
+  default_pose: "Unspecified"
+
+# XML 格式設定
+xml_settings:
+  # XML 縮排
+  indent: "  "
+
+  # 是否美化 XML 輸出
+  pretty_print: true
+
+  # XML 編碼
+  encoding: "utf-8"
+
+  # 是否包含 XML 宣告
+  xml_declaration: true
+
+# 類別對應設定
+category_mapping:
+  # 是否重新對應類別名稱
+  remap_categories: false
+
+  # 類別名稱對應表（COCO -> VOC）
+  # name_mapping:
+  #   person: person
+  #   car: car
+  #   bicycle: bicycle
+
+# 驗證設定
+validation:
+  # 是否驗證邊界框有效性
+  validate_bbox: true
+
+  # 是否檢查影像檔案存在
+  check_image_files: true
+
+  # 是否驗證類別一致性
+  validate_categories: true
+
+  # 最小邊界框尺寸（像素）
+  min_bbox_size: 1
+
+# 過濾設定
+filtering:
+  # 是否過濾無效標註
+  filter_invalid: true
+
+  # 是否過濾太小的邊界框
+  filter_small_bbox: true
+
+  # 最小邊界框面積（像素）
+  min_bbox_area: 100
+
+  # 是否過濾 iscrowd 標註
+  filter_crowd: false
+
+# 處理設定
+processing:
+  # 座標精度（小數位數）
+  coordinate_precision: 2
+
+  # 是否保留原始 COCO ID
+  keep_original_ids: false
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/annotation_tool_coco_to_voc.log
+  console: true
+
+# 輸出設定
+output:
+  # 是否生成統計報告
+  generate_report: true
+
+  # 報告檔案路徑
+  report_file: /path/to/output/voc/conversion_report.json
+
+  # 是否創建視覺化預覽
+  create_visualization: false
+
+  # 視覺化輸出目錄
+  visualization_dir: /path/to/output/voc/visualizations

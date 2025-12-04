@@ -1,0 +1,74 @@
+# Medium Augmentation Configuration
+# Moderate augmentation balancing diversity and quality
+# Use when: Standard training datasets, balanced approach needed
+
+metadata:
+  name: "Medium Augmentation"
+  description: "Moderate augmentation for balanced training"
+  version: "1.0.0"
+  author: "Animation AI Studio"
+
+# Augmentation pipeline configuration
+augmentations:
+  # Color adjustments (moderate)
+  - name: "random_brightness"
+    type: "color"
+    probability: 0.7  # 70% chance to apply
+    parameters:
+      range: [0.8, 1.2]  # ±20% brightness variation
+
+  - name: "random_contrast"
+    type: "color"
+    probability: 0.7
+    parameters:
+      range: [0.8, 1.2]  # ±20% contrast variation
+
+  - name: "random_saturation"
+    type: "color"
+    probability: 0.5
+    parameters:
+      range: [0.8, 1.2]  # ±20% saturation variation
+
+  # Geometric transformations (moderate)
+  - name: "horizontal_flip"
+    type: "geometric"
+    probability: 0.5
+    parameters: {}
+
+  - name: "vertical_flip"
+    type: "geometric"
+    probability: 0.2
+    parameters: {}
+
+  - name: "rotate"
+    type: "geometric"
+    probability: 0.3
+    parameters:
+      angle_range: [-15, 15]  # Random rotation between -15° and +15°
+      expand: true
+
+  # Blur effects (subtle)
+  - name: "random_blur"
+    type: "blur"
+    probability: 0.2
+    parameters:
+      blur_type: "gaussian"  # gaussian, box, or motion
+      radius_range: [0.5, 2.0]
+
+# Output settings
+output:
+  format: "jpg"
+  quality: 95
+  preserve_metadata: true
+
+# Processing settings
+processing:
+  seed: null  # null = random, or specify integer for reproducibility
+  num_workers: 4
+  batch_size: 16
+
+# Validation settings
+validation:
+  min_image_size: [64, 64]
+  max_image_size: [4096, 4096]
+  allowed_formats: ["jpg", "jpeg", "png", "webp"]

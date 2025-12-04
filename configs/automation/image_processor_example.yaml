@@ -1,0 +1,515 @@
+# Image Processor 配置範例
+# =======================
+#
+# 此檔案提供 Image Processor 批次處理的完整配置範例
+# 可用於 --operation batch 模式
+
+# ============================================================================
+# 範例 1：基本圖像調整尺寸
+# ============================================================================
+
+operations:
+  - operation: resize
+    input: /path/to/input/image1.jpg
+    output: /path/to/output/resized_image1.jpg
+    width: 1920
+    maintain_aspect: true
+    resampling: lanczos  # 可選: nearest, bilinear, bicubic, lanczos
+
+  - operation: resize
+    input: /path/to/input/image2.jpg
+    output: /path/to/output/resized_image2.jpg
+    height: 1080
+    maintain_aspect: true
+    resampling: lanczos
+
+# ============================================================================
+# 範例 2：裁切操作
+# ============================================================================
+
+  # Box 裁切（指定左上角和尺寸）
+  - operation: crop
+    input: /path/to/input/image3.jpg
+    output: /path/to/output/cropped_box.jpg
+    mode: box
+    left: 100
+    top: 100
+    width: 800
+    height: 600
+
+  # 中心裁切
+  - operation: crop
+    input: /path/to/input/image4.jpg
+    output: /path/to/output/cropped_center.jpg
+    mode: center
+    width: 500
+    height: 500
+
+  # 正方形裁切（自動使用最小邊長）
+  - operation: crop
+    input: /path/to/input/image5.jpg
+    output: /path/to/output/cropped_square.jpg
+    mode: square
+
+# ============================================================================
+# 範例 3：格式轉換
+# ============================================================================
+
+  # JPG → PNG
+  - operation: convert
+    input: /path/to/input/photo.jpg
+    output: /path/to/output/photo.png
+    output_format: png
+    optimize: true
+
+  # PNG → JPG（高品質）
+  - operation: convert
+    input: /path/to/input/graphic.png
+    output: /path/to/output/graphic.jpg
+    output_format: jpeg
+    quality: 95
+    optimize: true
+
+  # JPG → WebP（網頁最佳化）
+  - operation: convert
+    input: /path/to/input/image.jpg
+    output: /path/to/output/image.webp
+    output_format: webp
+    quality: 85
+    optimize: true
+
+# ============================================================================
+# 範例 4：圖像最佳化
+# ============================================================================
+
+  # 基本最佳化
+  - operation: optimize
+    input: /path/to/input/large_image.jpg
+    output: /path/to/output/optimized_image.jpg
+    quality: 85
+
+  # 最佳化 + 調整尺寸
+  - operation: optimize
+    input: /path/to/input/huge_image.jpg
+    output: /path/to/output/web_ready.jpg
+    width: 1920
+    quality: 80
+
+# ============================================================================
+# 範例 5：濾鏡操作
+# ============================================================================
+
+  # 模糊濾鏡
+  - operation: blur
+    input: /path/to/input/sharp_image.jpg
+    output: /path/to/output/blurred_image.jpg
+    radius: 3  # 1-3: 輕微, 4-8: 中度, 9+: 重度
+
+  # 銳化濾鏡
+  - operation: sharpen
+    input: /path/to/input/soft_image.jpg
+    output: /path/to/output/sharpened_image.jpg
+    factor: 2.0  # 1.0-3.0 推薦範圍
+
+  # 對比度調整
+  - operation: contrast
+    input: /path/to/input/flat_image.jpg
+    output: /path/to/output/high_contrast.jpg
+    factor: 1.5  # >1.0 增強, <1.0 降低
+
+  # 亮度調整
+  - operation: brightness
+    input: /path/to/input/dark_image.jpg
+    output: /path/to/output/brightened.jpg
+    factor: 1.3  # >1.0 增亮, <1.0 降低
+
+  # 自動對比度
+  - operation: auto_contrast
+    input: /path/to/input/low_contrast.jpg
+    output: /path/to/output/auto_enhanced.jpg
+    cutoff: 2  # 0-10，忽略極端值百分比
+
+# ============================================================================
+# 工作流程範例 1：網頁圖像最佳化
+# ============================================================================
+# 將高解析度圖像轉換為網頁友善格式
+
+  # Step 1: 調整尺寸
+  - operation: resize
+    input: /path/to/high_res/photo1.jpg
+    output: /tmp/web_processing/resized_photo1.jpg
+    width: 1920
+    maintain_aspect: true
+    resampling: lanczos
+
+  # Step 2: 最佳化壓縮
+  - operation: optimize
+    input: /tmp/web_processing/resized_photo1.jpg
+    output: /path/to/web_output/photo1.jpg
+    quality: 85
+
+  # Step 3: 生成 WebP 版本
+  - operation: convert
+    input: /tmp/web_processing/resized_photo1.jpg
+    output: /path/to/web_output/photo1.webp
+    output_format: webp
+    quality: 80
+
+# ============================================================================
+# 工作流程範例 2：社交媒體縮圖
+# ============================================================================
+# 從單一圖像生成多種社交媒體尺寸
+
+  # Instagram 正方形 (1:1)
+  - operation: crop
+    input: /path/to/source/social_media_photo.jpg
+    output: /path/to/social/instagram_square.jpg
+    mode: square
+
+  - operation: optimize
+    input: /path/to/social/instagram_square.jpg
+    output: /path/to/social/instagram_square.jpg
+    quality: 85
+
+  # Instagram Story (9:16)
+  - operation: resize
+    input: /path/to/source/social_media_photo.jpg
+    output: /tmp/social/story_temp.jpg
+    width: 1080
+    height: 1920
+    maintain_aspect: false
+
+  - operation: crop
+    input: /tmp/social/story_temp.jpg
+    output: /path/to/social/instagram_story.jpg
+    mode: center
+    width: 1080
+    height: 1920
+
+  # Facebook Cover (205:78)
+  - operation: resize
+    input: /path/to/source/social_media_photo.jpg
+    output: /path/to/social/facebook_cover.jpg
+    width: 820
+    height: 312
+    maintain_aspect: false
+
+  # Twitter Header (3:1)
+  - operation: resize
+    input: /path/to/source/social_media_photo.jpg
+    output: /path/to/social/twitter_header.jpg
+    width: 1500
+    height: 500
+    maintain_aspect: false
+
+# ============================================================================
+# 工作流程範例 3：照片自動增強
+# ============================================================================
+# 自動增強照片品質的完整流程
+
+  # Step 1: 自動對比度
+  - operation: auto_contrast
+    input: /path/to/photos/raw_photo.jpg
+    output: /tmp/enhancement/step1_contrast.jpg
+    cutoff: 2
+
+  # Step 2: 銳化
+  - operation: sharpen
+    input: /tmp/enhancement/step1_contrast.jpg
+    output: /tmp/enhancement/step2_sharp.jpg
+    factor: 1.5
+
+  # Step 3: 輕微增亮
+  - operation: brightness
+    input: /tmp/enhancement/step2_sharp.jpg
+    output: /tmp/enhancement/step3_bright.jpg
+    factor: 1.1
+
+  # Step 4: 最佳化輸出
+  - operation: optimize
+    input: /tmp/enhancement/step3_bright.jpg
+    output: /path/to/photos/enhanced_photo.jpg
+    quality: 90
+
+# ============================================================================
+# 工作流程範例 4：縮圖生成
+# ============================================================================
+# 從大型圖像生成多種尺寸的縮圖
+
+  # 大縮圖 (1920px 寬)
+  - operation: resize
+    input: /path/to/originals/full_size.jpg
+    output: /path/to/thumbnails/large_thumb.jpg
+    width: 1920
+    maintain_aspect: true
+    resampling: lanczos
+
+  - operation: optimize
+    input: /path/to/thumbnails/large_thumb.jpg
+    output: /path/to/thumbnails/large_thumb.jpg
+    quality: 85
+
+  # 中縮圖 (1280px 寬)
+  - operation: resize
+    input: /path/to/originals/full_size.jpg
+    output: /path/to/thumbnails/medium_thumb.jpg
+    width: 1280
+    maintain_aspect: true
+    resampling: lanczos
+
+  - operation: optimize
+    input: /path/to/thumbnails/medium_thumb.jpg
+    output: /path/to/thumbnails/medium_thumb.jpg
+    quality: 85
+
+  # 小縮圖 (640px 寬)
+  - operation: resize
+    input: /path/to/originals/full_size.jpg
+    output: /path/to/thumbnails/small_thumb.jpg
+    width: 640
+    maintain_aspect: true
+    resampling: bilinear  # 使用快速重採樣
+
+  - operation: optimize
+    input: /path/to/thumbnails/small_thumb.jpg
+    output: /path/to/thumbnails/small_thumb.jpg
+    quality: 80
+
+  # 極小縮圖 (320px 寬)
+  - operation: resize
+    input: /path/to/originals/full_size.jpg
+    output: /path/to/thumbnails/tiny_thumb.jpg
+    width: 320
+    maintain_aspect: true
+    resampling: bilinear
+
+  - operation: optimize
+    input: /path/to/thumbnails/tiny_thumb.jpg
+    output: /path/to/thumbnails/tiny_thumb.jpg
+    quality: 75
+
+# ============================================================================
+# 工作流程範例 5：印刷準備
+# ============================================================================
+# 準備高品質印刷用圖像
+
+  # Step 1: 調整至印刷尺寸（300 DPI）
+  - operation: resize
+    input: /path/to/source/print_source.jpg
+    output: /tmp/print/sized.jpg
+    width: 3000  # 10 inches × 300 DPI
+    height: 2400  # 8 inches × 300 DPI
+    maintain_aspect: false
+    resampling: lanczos
+
+  # Step 2: 銳化（印刷需要）
+  - operation: sharpen
+    input: /tmp/print/sized.jpg
+    output: /tmp/print/sharpened.jpg
+    factor: 2.5
+
+  # Step 3: 對比度增強
+  - operation: contrast
+    input: /tmp/print/sharpened.jpg
+    output: /tmp/print/contrasted.jpg
+    factor: 1.3
+
+  # Step 4: 轉換為 TIFF（專業格式）
+  - operation: convert
+    input: /tmp/print/contrasted.jpg
+    output: /path/to/print/final_print.tiff
+    output_format: tiff
+    quality: 100
+
+# ============================================================================
+# 工作流程範例 6：批次水印移除區域模糊
+# ============================================================================
+# 模糊圖像特定區域（例如：水印、隱私保護）
+
+  # 原始圖像裁切出水印區域 → 模糊 → 合併（需手動操作）
+  # 或直接對整張圖像套用輕微模糊
+
+  - operation: blur
+    input: /path/to/watermarked/image1.jpg
+    output: /path/to/processed/blurred1.jpg
+    radius: 5
+
+  - operation: blur
+    input: /path/to/watermarked/image2.jpg
+    output: /path/to/processed/blurred2.jpg
+    radius: 5
+
+# ============================================================================
+# 工作流程範例 7：Logo/Icon 生成
+# ============================================================================
+# 從高解析度 logo 生成多種尺寸
+
+  # Favicon (32x32)
+  - operation: resize
+    input: /path/to/logo/source_logo.png
+    output: /tmp/icons/favicon_temp.png
+    width: 32
+    height: 32
+    maintain_aspect: false
+    resampling: lanczos
+
+  - operation: convert
+    input: /tmp/icons/favicon_temp.png
+    output: /path/to/icons/favicon.ico
+    output_format: png  # ICO 需要額外工具
+    optimize: true
+
+  # Apple Touch Icon (180x180)
+  - operation: resize
+    input: /path/to/logo/source_logo.png
+    output: /path/to/icons/apple_touch_icon.png
+    width: 180
+    height: 180
+    maintain_aspect: false
+    resampling: lanczos
+
+  # Android Icon (192x192)
+  - operation: resize
+    input: /path/to/logo/source_logo.png
+    output: /path/to/icons/android_icon.png
+    width: 192
+    height: 192
+    maintain_aspect: false
+    resampling: lanczos
+
+  # Large Icon (512x512)
+  - operation: resize
+    input: /path/to/logo/source_logo.png
+    output: /path/to/icons/large_icon.png
+    width: 512
+    height: 512
+    maintain_aspect: false
+    resampling: lanczos
+
+# ============================================================================
+# 進階工作流程：動態路徑（使用變數）
+# ============================================================================
+# 注意：YAML 本身不支援變數，需要在腳本中實現
+
+# 範例腳本結構（需要額外 Python/Shell 包裝）:
+# ```python
+# import yaml
+#
+# config = yaml.safe_load(open('config.yaml'))
+# source_dir = "/path/to/source"
+# output_dir = "/path/to/output"
+#
+# for op in config['operations']:
+#     op['input'] = op['input'].replace('{source_dir}', source_dir)
+#     op['output'] = op['output'].replace('{output_dir}', output_dir)
+# ```
+
+# ============================================================================
+# 效能調校參數
+# ============================================================================
+# 這些參數可以通過命令列覆蓋
+
+# CLI 範例:
+# python scripts/automation/scenarios/image_processor.py \
+#   --operation batch \
+#   --input this_config.yaml \
+#   --threads 16 \              # 降低執行緒數（預設 32）
+#   --skip-preflight            # 跳過記憶體檢查（加快執行）
+
+# ============================================================================
+# 最佳實踐建議
+# ============================================================================
+
+# 1. 順序優化：
+#    - 先 resize（減少後續計算量）
+#    - 再套用濾鏡
+#    - 最後 optimize
+
+# 2. 臨時檔案：
+#    - 使用 /tmp/ 存放中間結果
+#    - 完成後清理（可自動化）
+
+# 3. 品質設定：
+#    - 網頁：quality 80-85
+#    - 封存：quality 90-95
+#    - 印刷：quality 95-100
+
+# 4. 格式選擇：
+#    - 照片 → JPEG/WebP
+#    - 圖形/透明度 → PNG
+#    - 專業/印刷 → TIFF
+
+# 5. 重採樣：
+#    - Lanczos：最高品質（最慢）
+#    - Bicubic：平衡
+#    - Bilinear：快速預覽
+#    - Nearest：不推薦
+
+# ============================================================================
+# 記憶體管理
+# ============================================================================
+
+# 批次處理大量圖像時的記憶體建議：
+# - 4GB RAM: --threads 8, 最大 1920x1080
+# - 8GB RAM: --threads 16, 最大 1920x1080
+# - 16GB RAM: --threads 32, 最大 3840x2160
+# - 32GB RAM: --threads 32, 無限制
+
+# ============================================================================
+# 除錯技巧
+# ============================================================================
+
+# 1. 單一操作測試：
+#    從 YAML 提取單一操作，使用 CLI 測試
+#
+#    python scripts/automation/scenarios/image_processor.py \
+#      --operation resize \
+#      --input /path/to/input.jpg \
+#      --output /tmp/test_output.jpg \
+#      --width 800
+
+# 2. 驗證 YAML 語法：
+#    python -c "import yaml; yaml.safe_load(open('config.yaml'))"
+
+# 3. 檢查輸出目錄權限：
+#    mkdir -p /path/to/output && touch /path/to/output/test.txt
+
+# 4. 監控處理進度：
+#    tail -f logs/image_processor.log
+
+# ============================================================================
+# 與其他組件整合
+# ============================================================================
+
+# 與 Video Processor 整合範例：
+# operations:
+#   # 1. 從影片提取 frames (使用 Video Processor)
+#   # python scripts/automation/scenarios/video_processor.py extract ...
+#
+#   # 2. 批次處理 frames
+#   - operation: resize
+#     input: /tmp/frames/frame_0001.jpg
+#     output: /tmp/processed/frame_0001.jpg
+#     width: 1920
+
+# 與 Audio Processor 整合範例：
+# operations:
+#   # 1. 生成波形圖 (使用 Audio Processor)
+#   # python scripts/automation/scenarios/audio_processor.py waveform ...
+#
+#   # 2. 調整波形圖為社交媒體尺寸
+#   - operation: resize
+#     input: /tmp/waveform.png
+#     output: /tmp/social_waveform.jpg
+#     width: 1200
+#     height: 628
+
+# ============================================================================
+# 結尾注意事項
+# ============================================================================
+
+# 1. 永遠保留原始檔案（輸出到不同路徑）
+# 2. 使用版本控制追蹤配置變更
+# 3. 定期清理臨時檔案
+# 4. 監控磁碟空間使用
+# 5. 備份重要輸出

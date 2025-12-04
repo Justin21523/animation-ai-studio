@@ -1,0 +1,255 @@
+# Dataset Builder - 生產環境配置
+# 適用於大型資料集和生產環境部署
+
+# 專案資訊
+project:
+  name: "Production Image Dataset"
+  description: "High-quality image dataset for production model training"
+  version: "1.0.0"
+  author: "AI Team"
+  created_date: "2025-12-02"
+  license: "Internal Use Only"
+
+# 資料來源設定
+sources:
+  - path: /data/production/batch_2024_q4
+    weight: 1.0
+    enabled: true
+    description: "Q4 2024 production data"
+
+  - path: /data/production/batch_2025_q1
+    weight: 1.0
+    enabled: true
+    description: "Q1 2025 production data"
+
+  - path: /data/production/supplementary
+    weight: 0.5
+    enabled: true
+    description: "Supplementary training data"
+
+# 資料集創建設定
+creation:
+  # 輸出基礎目錄
+  base_dir: /data/datasets/production
+
+  # 資料集名稱
+  dataset_name: production_v1
+
+  # 是否創建帶時間戳的目錄
+  create_timestamp_dir: false
+
+  # 格式設定
+  format: imagefolder
+  recursive: true
+
+  # 最小樣本數要求（品質控制）
+  min_images_per_class: 50
+
+# 類別過濾設定
+class_filter:
+  # 模式：whitelist（白名單）或 blacklist（黑名單）
+  mode: whitelist
+
+  # 允許的類別（白名單模式）
+  classes:
+    - person
+    - vehicle
+    - building
+    - animal
+    - plant
+    - object
+
+  # 每類樣本數限制
+  min_samples_per_class: 50
+  max_samples_per_class: 10000
+
+# 分割策略
+split_strategy:
+  # 分割方法：stratified（分層）, random（隨機）, kfold（K-fold）
+  method: stratified
+
+  # 分割比例
+  train_ratio: 0.75
+  val_ratio: 0.15
+  test_ratio: 0.10
+
+  # 隨機種子
+  seed: 12345
+
+  # 是否保持類別比例
+  preserve_class_ratio: true
+
+# 影像處理設定
+image_processing:
+  # 尺寸調整（可選）
+  resize:
+    enabled: false
+    width: 512
+    height: 512
+    keep_aspect_ratio: true
+    interpolation: bilinear
+
+  # 品質檢查
+  quality_check:
+    enabled: true
+
+    # 解析度要求
+    min_resolution: [512, 512]
+    max_resolution: [4096, 4096]
+
+    # 檔案大小要求
+    min_file_size_kb: 20
+    max_file_size_mb: 50
+
+    # 允許的格式
+    allowed_formats:
+      - jpg
+      - jpeg
+      - png
+      - webp
+
+    # 檢查影像損壞
+    check_corruption: true
+
+    # 檢查色彩空間
+    check_color_space: true
+    required_color_space: RGB
+
+  # 去重設定
+  deduplication:
+    enabled: true
+    method: phash  # phash, dhash, ahash, whash
+    threshold: 5   # Hamming distance threshold
+    keep_first: true  # 保留第一次出現的影像
+
+# 元數據設定
+metadata:
+  # 生成統計資訊
+  generate_statistics: true
+
+  # 生成摘要報告
+  generate_summary: true
+
+  # 包含樣本影像
+  include_sample_images: true
+  sample_images_count: 20
+
+  # 計算資料集均值和標準差（用於正規化）
+  compute_mean_std: true
+
+  # 計算類別權重（用於不平衡資料集）
+  compute_class_weights: true
+
+# 驗證設定
+validation:
+  # 創建後自動驗證
+  auto_validate: true
+
+  # 深度檢查
+  deep_check: true
+
+  # 生成驗證報告
+  generate_report: true
+
+  # 報告格式
+  report_format: json  # json, yaml, txt, html
+
+# 性能設定
+performance:
+  # 批次大小（根據記憶體調整）
+  batch_size: 128
+
+  # 工作執行緒數
+  num_workers: 16
+
+  # 預取因子
+  prefetch_factor: 4
+
+  # 記憶體限制（GB）
+  memory_limit_gb: 32
+
+  # 使用多進程（而非多執行緒）
+  use_multiprocessing: true
+
+  # 使用快取
+  use_cache: true
+  cache_dir: /tmp/dataset_builder_cache
+
+# 備份設定
+backup:
+  # 啟用備份
+  enabled: true
+
+  # 備份目錄
+  backup_dir: /data/backups/datasets
+
+  # 保留最近 N 個版本
+  keep_versions: 3
+
+  # 壓縮備份
+  compress: true
+  compression_format: tar.gz
+
+# 通知設定
+notifications:
+  # 啟用通知
+  enabled: false
+
+  # 通知類型
+  types:
+    - email
+    - slack
+
+  # Email 設定
+  email:
+    recipients:
+      - team@example.com
+    smtp_server: smtp.example.com
+    smtp_port: 587
+
+  # Slack 設定
+  slack:
+    webhook_url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    channel: "#ml-datasets"
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/production_dataset_builder.log
+  console: true
+
+  # 日誌輪替
+  rotation: "100 MB"
+  retention: "90 days"
+
+  # 日誌格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 錯誤處理
+error_handling:
+  # 遇到錯誤時的行為：stop（停止）, skip（跳過）, retry（重試）
+  on_error: skip
+
+  # 重試次數
+  max_retries: 3
+
+  # 重試延遲（秒）
+  retry_delay: 5
+
+  # 記錄錯誤到檔案
+  log_errors: true
+  error_log_file: logs/errors.log
+
+# 安全設定
+security:
+  # 啟用安全檢查
+  enabled: true
+
+  # 檢查檔案權限
+  check_permissions: true
+
+  # 禁止符號連結（防止路徑遍歷攻擊）
+  disallow_symlinks: false
+
+  # 檔案名稱白名單模式
+  filename_whitelist_pattern: "^[a-zA-Z0-9_.-]+$"

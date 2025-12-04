@@ -1,0 +1,48 @@
+# Light Augmentation Configuration
+# Minimal augmentation suitable for high-quality datasets
+# Use when: Original images are already clean and well-composed
+
+metadata:
+  name: "Light Augmentation"
+  description: "Minimal augmentation for high-quality datasets"
+  version: "1.0.0"
+  author: "Animation AI Studio"
+
+# Augmentation pipeline configuration
+augmentations:
+  # Color adjustments (subtle)
+  - name: "random_brightness"
+    type: "color"
+    probability: 0.5  # 50% chance to apply
+    parameters:
+      range: [0.9, 1.1]  # ±10% brightness variation
+
+  - name: "random_contrast"
+    type: "color"
+    probability: 0.5
+    parameters:
+      range: [0.9, 1.1]  # ±10% contrast variation
+
+  # Geometric transformations (minimal)
+  - name: "horizontal_flip"
+    type: "geometric"
+    probability: 0.5
+    parameters: {}
+
+# Output settings
+output:
+  format: "jpg"
+  quality: 95
+  preserve_metadata: true
+
+# Processing settings
+processing:
+  seed: null  # null = random, or specify integer for reproducibility
+  num_workers: 4
+  batch_size: 16
+
+# Validation settings
+validation:
+  min_image_size: [64, 64]  # Minimum width, height in pixels
+  max_image_size: [4096, 4096]  # Maximum width, height in pixels
+  allowed_formats: ["jpg", "jpeg", "png", "webp"]

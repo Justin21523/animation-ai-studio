@@ -1,0 +1,62 @@
+{
+  "character": {
+    "name": "Character Name",
+    "description": "Brief description of the character"
+  },
+
+  "base_model": "/path/to/sdxl_base_model.safetensors",
+
+  "lora_paths": {
+    "character": "/path/to/character_lora.safetensors",
+    "style": "/path/to/style_lora.safetensors"
+  },
+
+  "lora_weights": {
+    "character": 0.8,
+    "style": 1.0
+  },
+
+  "negative_prompt": "blurry, low quality, worst quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs, bad proportions, malformed limbs, fused fingers, too many fingers, long neck, duplicate, morbid, mutilated, poorly drawn hands, poorly drawn face, bad art, poorly drawn, extra arms, extra legs, cloned face, gross proportions, realistic, photo, photorealistic, hyperrealistic, 2d, flat, sketch, drawing, cartoon 2d, monochrome, grayscale, black and white, lowres, text, watermark, signature",
+
+  "width": 1024,
+  "height": 1024,
+  "steps": 30,
+  "cfg_scale": 7.5,
+
+  "output_base": "outputs/image_generation/character_name_variations",
+
+  "variations": [
+    {
+      "category": "expressions",
+      "seed_offset": 0,
+      "items": [
+        {
+          "category": "expression",
+          "name": "happy",
+          "prompt": "character_name, happy expression, big smile, joyful, [character description], [environment], [style keywords]"
+        },
+        {
+          "category": "expression",
+          "name": "sad",
+          "prompt": "character_name, sad expression, tears, crying, [character description], [environment], [style keywords]"
+        }
+      ]
+    },
+    {
+      "category": "actions",
+      "seed_offset": 100,
+      "items": [
+        {
+          "category": "action",
+          "name": "running",
+          "prompt": "character_name, running fast, dynamic pose, [character description], [environment], [style keywords]"
+        },
+        {
+          "category": "action",
+          "name": "jumping",
+          "prompt": "character_name, jumping in the air, mid-air, [character description], [environment], [style keywords]"
+        }
+      ]
+    }
+  ]
+}

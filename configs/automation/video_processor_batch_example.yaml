@@ -1,0 +1,97 @@
+# Video Processor Batch Configuration Example
+#
+# This demonstrates batch video processing operations using FFmpeg.
+# All operations are CPU-only and optimized for 32-thread processing.
+#
+# Usage:
+#   python scripts/automation/scenarios/video_processor.py \
+#     --operation batch \
+#     --batch-config configs/automation/video_processor_batch_example.yaml
+#
+# Author: Animation AI Studio Team
+# Last Modified: 2025-12-02
+
+# ============================================================================
+# Processing Configuration
+# ============================================================================
+
+# CPU threads for FFmpeg (utilize all 32 threads)
+threads: 32
+
+# ============================================================================
+# Batch Operations
+# ============================================================================
+
+operations:
+  # Operation 1: Cut video segment
+  - operation: cut
+    input: /mnt/data/datasets/general/luca/raw_videos/luca_film.ts
+    output: /tmp/video_processor_test/luca_segment_01.mp4
+    start_time: "00:01:30"
+    end_time: "00:02:00"
+
+  # Operation 2: Cut another segment
+  - operation: cut
+    input: /mnt/data/datasets/general/luca/raw_videos/luca_film.ts
+    output: /tmp/video_processor_test/luca_segment_02.mp4
+    start_time: "00:05:00"
+    duration: "30"  # 30 seconds
+
+  # Operation 3: Apply fade effects
+  - operation: effects
+    input: /tmp/video_processor_test/luca_segment_01.mp4
+    output: /tmp/video_processor_test/luca_segment_01_faded.mp4
+    fade_in: 1.0
+    fade_out: 1.0
+    brightness: 1.05
+    contrast: 1.05
+
+  # Operation 4: Convert format and optimize
+  - operation: convert
+    input: /tmp/video_processor_test/luca_segment_01_faded.mp4
+    output: /tmp/video_processor_test/luca_segment_01_optimized.mp4
+    codec: h264
+    crf: 23
+    preset: medium
+    audio_codec: aac
+    audio_bitrate: 192k
+
+  # Operation 5: Concatenate segments
+  - operation: concat
+    inputs:
+      - /tmp/video_processor_test/luca_segment_01_optimized.mp4
+      - /tmp/video_processor_test/luca_segment_02.mp4
+    output: /tmp/video_processor_test/luca_concatenated.mp4
+    transition: none  # or 'fade' for transitions
+
+# ============================================================================
+# Notes
+# ============================================================================
+#
+# Available operations:
+#   - cut: Extract video segment (start_time, end_time or duration)
+#   - concat: Join multiple videos (inputs list)
+#   - convert: Format conversion and codec optimization
+#   - effects: Apply video effects (fade, brightness, contrast, saturation)
+#
+# Time formats:
+#   - HH:MM:SS (e.g., "00:01:30")
+#   - Seconds as string (e.g., "90")
+#
+# Codecs:
+#   - h264: Best compatibility, good quality
+#   - h265: Better compression, slower encoding
+#   - vp9: WebM format, good for web
+#
+# CRF (Constant Rate Factor):
+#   - 0-51 range (lower = better quality, larger file)
+#   - 23 is default (good quality)
+#   - 18 is visually lossless
+#   - 28 is lower quality but smaller file
+#
+# Presets (encoding speed vs compression):
+#   - ultrafast: Fastest, largest file
+#   - fast: Quick, larger file
+#   - medium: Balanced (default)
+#   - slow: Better compression
+#   - veryslow: Best compression, slowest
