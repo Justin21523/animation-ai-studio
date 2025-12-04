@@ -1,0 +1,51 @@
+# Coqui TTS 完整相容依賴配置
+# 針對 PyTorch 2.7.1 + CUDA 12.8 環境
+
+# Core TTS
+TTS==0.22.0
+
+# Transformers ecosystem - 固定相容版本
+transformers==4.33.0
+tokenizers==0.13.3
+
+# Triton - 使用包含 triton.ops 的版本 (for bitsandbytes compatibility)
+triton==2.1.0
+
+# Bitsandbytes - 與 triton 2.1.0 相容
+bitsandbytes==0.41.3
+
+# Audio processing
+librosa==0.10.2
+soundfile==0.12.1
+phonemizer==3.2.1
+pysbd==0.3.4
+
+# Text processing
+unidecode==1.3.8
+inflect==7.0.0
+num2words==0.5.13
+
+# Deep learning
+einops==0.8.0
+encodec==0.1.1
+
+# API and utilities
+flask==3.0.3
+pydub==0.25.1
+fsspec==2024.3.1
+
+# Training dependencies
+coqpit==0.0.17
+trainer==0.0.36
+
+# Matplotlib for visualization (TTS requires it)
+matplotlib==3.8.4
+
+# NumPy - TTS 0.22.0 requires exactly 1.22.0 for Python 3.10
+numpy==1.22.0
+
+# G2P dependencies for multilingual
+gruut[de,es,fr]==2.2.3
+bangla==0.0.2
+bnnumerizer==0.0.2
+bnunicodenormalizer==0.1.6
