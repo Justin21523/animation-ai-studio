@@ -4,7 +4,7 @@ Utility functions for LLM client
 
 import base64
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Dict, Any, Optional
 import cv2
 import numpy as np
 

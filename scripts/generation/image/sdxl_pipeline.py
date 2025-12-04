@@ -150,12 +150,92 @@ class SDXLPipelineManager:
 
         # Load pipeline
         try:
-            self.pipeline = StableDiffusionXLPipeline.from_pretrained(
-                str(self.model_path),
-                torch_dtype=self.dtype,
-                variant=self.variant,
-                use_safetensors=True
-            )
+            # Check if model_path is a single file or directory
+            if self.model_path.is_file() and self.model_path.suffix in ['.safetensors', '.ckpt']:
+                # Load from single checkpoint file (CivitAI format)
+                # CRITICAL: Single-file checkpoints often don't include tokenizers/text encoders
+                # We need to load them explicitly from base SDXL model
+                print(f"Loading from single file: {self.model_path.name}")
+
+                from transformers import CLIPTokenizer, CLIPTextModel, CLIPTextModelWithProjection
+                from diffusers import AutoencoderKL
+
+                # Load tokenizers and text encoders from base SDXL (required for single-file loading)
+                print("Loading tokenizers and text encoders from base SDXL model...")
+                tokenizer = CLIPTokenizer.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    subfolder="tokenizer"
+                )
+                tokenizer_2 = CLIPTokenizer.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    subfolder="tokenizer_2"
+                )
+                text_encoder = CLIPTextModel.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    subfolder="text_encoder",
+                    torch_dtype=self.dtype
+                )
+                text_encoder_2 = CLIPTextModelWithProjection.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    subfolder="text_encoder_2",
+                    torch_dtype=self.dtype
+                )
+
+                # Load pipeline with explicit tokenizers and text encoders
+                self.pipeline = StableDiffusionXLPipeline.from_single_file(
+                    str(self.model_path),
+                    torch_dtype=self.dtype,
+                    use_safetensors=True,
+                    tokenizer=tokenizer,
+                    tokenizer_2=tokenizer_2,
+                    text_encoder=text_encoder,
+                    text_encoder_2=text_encoder_2
+                )
+
+                # Fix UNet config for single-file SDXL checkpoints
+                # Many CivitAI checkpoints have incomplete UNet configs
+                if hasattr(self.pipeline.unet.config, 'addition_time_embed_dim'):
+                    if self.pipeline.unet.config.addition_time_embed_dim is None:
+                        print("Fixing UNet config: setting addition_time_embed_dim=256")
+                        self.pipeline.unet.config.addition_time_embed_dim = 256
+
+                # Check if UNet has add_embedding attribute
+                # If not, this checkpoint may not be fully SDXL compatible
+                if not hasattr(self.pipeline.unet, 'add_embedding'):
+                    print("WARNING: UNet missing 'add_embedding' attribute.")
+                    print("This checkpoint may not be fully SDXL-compatible.")
+                    print("Attempting to add missing time embedding layer...")
+
+                    # Try to add the missing embedding layer
+                    import torch.nn as nn
+                    try:
+                        # SDXL uses 256-dim additional time embeddings
+                        addition_time_embed_dim = getattr(
+                            self.pipeline.unet.config,
+                            'addition_time_embed_dim',
+                            256
+                        )
+                        time_embed_dim = self.pipeline.unet.config.block_out_channels[0] * 4
+
+                        # Create the missing add_embedding layer
+                        from diffusers.models.embeddings import TimestepEmbedding
+                        self.pipeline.unet.add_embedding = TimestepEmbedding(
+                            addition_time_embed_dim,
+                            time_embed_dim
+                        ).to(self.device, dtype=self.dtype)
+                        print("Successfully added missing time embedding layer")
+                    except Exception as e:
+                        print(f"WARNING: Could not add embedding layer: {e}")
+                        print("This model may fail during generation.")
+            else:
+                # Load from directory (HuggingFace format)
+                print(f"Loading from directory: {self.model_path}")
+                self.pipeline = StableDiffusionXLPipeline.from_pretrained(
+                    str(self.model_path),
+                    torch_dtype=self.dtype,
+                    variant=self.variant,
+                    use_safetensors=True
+                )
 
             # CRITICAL: Set attention processor to SDPA
             # This replaces xformers with PyTorch 2.7.0 native SDPA
@@ -227,7 +307,7 @@ class SDXLPipelineManager:
         Args:
             scheduler_name: Scheduler name ("euler", "dpm", "ddim")
         """
-        if not self.is_loaded:
+        if self.pipeline is None:
             raise RuntimeError("Pipeline not loaded")
 
         scheduler_map = {
