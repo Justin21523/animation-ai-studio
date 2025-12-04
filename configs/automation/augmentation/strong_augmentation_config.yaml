@@ -1,0 +1,114 @@
+# Strong Augmentation Configuration
+# Aggressive augmentation for maximum diversity
+# Use when: Limited training data, need maximum variation
+
+metadata:
+  name: "Strong Augmentation"
+  description: "Aggressive augmentation for maximum diversity"
+  version: "1.0.0"
+  author: "Animation AI Studio"
+
+# Augmentation pipeline configuration
+augmentations:
+  # Color adjustments (aggressive)
+  - name: "random_brightness"
+    type: "color"
+    probability: 0.8  # 80% chance to apply
+    parameters:
+      range: [0.7, 1.3]  # ±30% brightness variation
+
+  - name: "random_contrast"
+    type: "color"
+    probability: 0.8
+    parameters:
+      range: [0.7, 1.3]  # ±30% contrast variation
+
+  - name: "random_saturation"
+    type: "color"
+    probability: 0.7
+    parameters:
+      range: [0.7, 1.3]  # ±30% saturation variation
+
+  - name: "random_hue_shift"
+    type: "color"
+    probability: 0.3
+    parameters:
+      delta_range: [-30, 30]  # Hue shift in degrees
+
+  # Geometric transformations (aggressive)
+  - name: "horizontal_flip"
+    type: "geometric"
+    probability: 0.5
+    parameters: {}
+
+  - name: "vertical_flip"
+    type: "geometric"
+    probability: 0.3
+    parameters: {}
+
+  - name: "rotate"
+    type: "geometric"
+    probability: 0.5
+    parameters:
+      angle_range: [-30, 30]  # Random rotation between -30° and +30°
+      expand: true
+
+  - name: "random_crop"
+    type: "geometric"
+    probability: 0.3
+    parameters:
+      crop_fraction_range: [0.7, 0.9]  # Keep 70-90% of image
+
+  - name: "random_scale"
+    type: "geometric"
+    probability: 0.3
+    parameters:
+      scale_range: [0.8, 1.2]  # Scale by 80-120%
+
+  # Blur effects (moderate)
+  - name: "random_blur"
+    type: "blur"
+    probability: 0.3
+    parameters:
+      blur_type: "random"  # Random blur type
+      radius_range: [0.5, 3.0]
+
+  # Noise effects (subtle)
+  - name: "gaussian_noise"
+    type: "noise"
+    probability: 0.2
+    parameters:
+      mean: 0
+      std_range: [5, 15]
+
+  # Advanced effects
+  - name: "cutout"
+    type: "advanced"
+    probability: 0.2
+    parameters:
+      num_holes: 1
+      hole_size_range: [0.05, 0.15]  # 5-15% of image
+
+  - name: "posterize"
+    type: "advanced"
+    probability: 0.1
+    parameters:
+      bits_range: [4, 6]  # Reduce to 4-6 bits per channel
+
+# Output settings
+output:
+  format: "jpg"
+  quality: 90  # Slightly lower quality for strong augmentation
+  preserve_metadata: false
+
+# Processing settings
+processing:
+  seed: null  # null = random, or specify integer for reproducibility
+  num_workers: 4
+  batch_size: 8  # Smaller batch for complex augmentations
+
+# Validation settings
+validation:
+  min_image_size: [64, 64]
+  max_image_size: [4096, 4096]
+  allowed_formats: ["jpg", "jpeg", "png", "webp"]

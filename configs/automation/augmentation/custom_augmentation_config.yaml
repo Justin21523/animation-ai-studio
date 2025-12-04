@@ -1,0 +1,177 @@
+# Custom Augmentation Configuration Template
+# Customize this template for your specific use case
+# Copy and modify parameters as needed
+
+metadata:
+  name: "Custom Augmentation"
+  description: "Template for custom augmentation pipelines"
+  version: "1.0.0"
+  author: "Your Name"
+
+# Augmentation pipeline configuration
+# Customize which augmentations to apply and their parameters
+augmentations:
+  # ===== COLOR AUGMENTATIONS =====
+
+  # Brightness adjustment
+  - name: "random_brightness"
+    type: "color"
+    probability: 0.5  # Probability of applying (0.0 to 1.0)
+    parameters:
+      range: [0.8, 1.2]  # Factor range [min, max]
+      # 1.0 = no change, <1.0 = darker, >1.0 = brighter
+
+  # Contrast adjustment
+  - name: "random_contrast"
+    type: "color"
+    probability: 0.5
+    parameters:
+      range: [0.8, 1.2]  # Factor range
+      # 1.0 = no change, <1.0 = less contrast, >1.0 = more contrast
+
+  # Saturation adjustment
+  - name: "random_saturation"
+    type: "color"
+    probability: 0.3
+    parameters:
+      range: [0.8, 1.2]  # Factor range
+      # 1.0 = no change, 0.0 = grayscale, >1.0 = more saturated
+
+  # Hue shift (color rotation)
+  # - name: "random_hue_shift"
+  #   type: "color"
+  #   probability: 0.2
+  #   parameters:
+  #     delta_range: [-20, 20]  # Hue delta in degrees (-180 to 180)
+
+  # ===== GEOMETRIC AUGMENTATIONS =====
+
+  # Horizontal flip (mirror)
+  - name: "horizontal_flip"
+    type: "geometric"
+    probability: 0.5
+    parameters: {}
+
+  # Vertical flip
+  # - name: "vertical_flip"
+  #   type: "geometric"
+  #   probability: 0.2
+  #   parameters: {}
+
+  # Rotation
+  - name: "rotate"
+    type: "geometric"
+    probability: 0.3
+    parameters:
+      angle_range: [-15, 15]  # Random angle in degrees
+      expand: true  # Expand canvas to fit rotated image
+
+  # Random crop
+  # - name: "random_crop"
+  #   type: "geometric"
+  #   probability: 0.2
+  #   parameters:
+  #     crop_fraction_range: [0.8, 0.95]  # Keep 80-95% of image
+
+  # Center crop (fixed ratio)
+  # - name: "center_crop"
+  #   type: "geometric"
+  #   probability: 0.0
+  #   parameters:
+  #     crop_fraction: 0.9  # Keep center 90%
+
+  # Scale/Zoom
+  # - name: "random_scale"
+  #   type: "geometric"
+  #   probability: 0.2
+  #   parameters:
+  #     scale_range: [0.9, 1.1]  # Scale factor range
+
+  # ===== BLUR AUGMENTATIONS =====
+
+  # Gaussian blur
+  - name: "random_blur"
+    type: "blur"
+    probability: 0.2
+    parameters:
+      blur_type: "gaussian"  # Options: gaussian, box, motion
+      radius_range: [0.5, 2.0]  # Blur radius range
+
+  # ===== NOISE AUGMENTATIONS =====
+
+  # Gaussian noise
+  # - name: "gaussian_noise"
+  #   type: "noise"
+  #   probability: 0.1
+  #   parameters:
+  #     mean: 0
+  #     std_range: [5, 10]  # Standard deviation range
+
+  # Salt and pepper noise
+  # - name: "salt_and_pepper"
+  #   type: "noise"
+  #   probability: 0.1
+  #   parameters:
+  #     amount: 0.02  # Proportion of pixels to add noise to
+
+  # ===== ADVANCED AUGMENTATIONS =====
+
+  # Cutout (random masking)
+  # - name: "cutout"
+  #   type: "advanced"
+  #   probability: 0.1
+  #   parameters:
+  #     num_holes: 1
+  #     hole_size_range: [0.1, 0.2]  # Fraction of image size
+
+  # Posterize (reduce colors)
+  # - name: "posterize"
+  #   type: "advanced"
+  #   probability: 0.1
+  #   parameters:
+  #     bits_range: [4, 6]  # Bits per channel (1-8)
+
+  # Solarize (invert pixels above threshold)
+  # - name: "solarize"
+  #   type: "advanced"
+  #   probability: 0.1
+  #   parameters:
+  #     threshold: 128  # 0-255
+
+  # Histogram equalization
+  # - name: "equalize"
+  #   type: "advanced"
+  #   probability: 0.1
+  #   parameters: {}
+
+  # Auto contrast
+  # - name: "autocontrast"
+  #   type: "advanced"
+  #   probability: 0.1
+  #   parameters:
+  #     cutoff: 0  # Percentage of lightest/darkest pixels to ignore
+
+# Output settings
+output:
+  format: "jpg"  # Options: jpg, png, webp
+  quality: 95  # JPEG/WebP quality (1-100)
+  preserve_metadata: true  # Keep EXIF data
+
+# Processing settings
+processing:
+  seed: null  # Random seed (null = random, or specify integer)
+  num_workers: 4  # Parallel workers for batch processing
+  batch_size: 16  # Images per batch
+
+# Validation settings
+validation:
+  min_image_size: [64, 64]  # Minimum [width, height] in pixels
+  max_image_size: [4096, 4096]  # Maximum [width, height] in pixels
+  allowed_formats: ["jpg", "jpeg", "png", "webp", "bmp", "tiff"]
+
+# Usage Notes:
+# 1. Uncomment augmentations by removing the leading '#'
+# 2. Adjust probability values (0.0 = never, 1.0 = always)
+# 3. Tune parameter ranges based on your dataset
+# 4. Test with small batches before full processing
+# 5. Use seed for reproducible results during testing

@@ -1,0 +1,147 @@
+# Annotation Validation Configuration
+# 標註驗證配置檔案
+
+# 專案資訊
+project:
+  name: "Annotation Validation"
+  description: "Validate object detection annotations for quality assurance"
+  version: "1.0.0"
+
+# 驗證設定
+validation:
+  # 輸入格式: coco, yolo, voc
+  format: coco
+
+  # 輸入檔案或目錄
+  input: /path/to/annotations.json
+
+  # 影像目錄（用於驗證影像存在性和尺寸）
+  images_dir: /path/to/images
+
+  # 是否驗證邊界框有效性
+  validate_bbox: true
+
+  # 是否檢查影像檔案存在
+  check_image_files: true
+
+  # 是否驗證類別一致性
+  validate_categories: true
+
+  # 是否檢查重複標註
+  check_duplicates: true
+
+  # 是否驗證標註完整性
+  check_completeness: true
+
+# 邊界框驗證規則
+bbox_rules:
+  # 最小邊界框寬度（像素）
+  min_width: 1
+
+  # 最小邊界框高度（像素）
+  min_height: 1
+
+  # 最小邊界框面積（像素）
+  min_area: 100
+
+  # 最大邊界框面積比例（相對於影像面積）
+  max_area_ratio: 1.0
+
+  # 是否允許邊界框超出影像範圍
+  allow_out_of_bounds: false
+
+  # 邊界框超出範圍的容忍度（像素）
+  out_of_bounds_tolerance: 0
+
+  # 最小寬高比
+  min_aspect_ratio: 0.1
+
+  # 最大寬高比
+  max_aspect_ratio: 10.0
+
+# 影像驗證規則
+image_rules:
+  # 允許的影像格式
+  allowed_formats:
+    - jpg
+    - jpeg
+    - png
+    - bmp
+
+  # 最小影像寬度（像素）
+  min_width: 32
+
+  # 最小影像高度（像素）
+  min_height: 32
+
+  # 最大影像尺寸（像素）
+  max_width: 10000
+  max_height: 10000
+
+  # 是否檢查影像可讀性
+  check_readability: true
+
+# 類別驗證規則
+category_rules:
+  # 是否要求類別名稱唯一
+  unique_names: true
+
+  # 是否要求類別 ID 連續
+  continuous_ids: false
+
+  # 允許的類別名稱模式（正則表達式）
+  name_pattern: "^[a-zA-Z0-9_-]+$"
+
+  # 最小類別數量
+  min_categories: 1
+
+  # 最大類別數量
+  max_categories: 1000
+
+# 統計閾值（用於警告）
+statistics_thresholds:
+  # 最小標註數量（每個影像）
+  min_annotations_per_image: 0
+
+  # 最大標註數量（每個影像）
+  max_annotations_per_image: 100
+
+  # 最小類別平衡度（最少類別 / 最多類別）
+  min_class_balance: 0.1
+
+  # 無標註影像的最大比例
+  max_empty_images_ratio: 0.1
+
+# 輸出設定
+output:
+  # 驗證報告檔案路徑
+  report_file: /path/to/validation_report.json
+
+  # 是否生成詳細報告
+  detailed_report: true
+
+  # 是否包含警告資訊
+  include_warnings: true
+
+  # 是否包含錯誤影像列表
+  include_error_images: true
+
+  # 是否包含統計資訊
+  include_statistics: true
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/annotation_validation.log
+  console: true
+
+# 處理設定
+processing:
+  # 批次大小
+  batch_size: 100
+
+  # 是否使用多執行緒
+  use_multiprocessing: false
+
+  # 工作執行緒數量
+  num_workers: 4

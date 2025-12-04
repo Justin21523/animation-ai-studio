@@ -1,0 +1,174 @@
+{
+  "character": {
+    "name": "Luca Paguro",
+    "description": "13-year-old Italian boy with brown curly hair and green eyes from Pixar's Luca",
+    "film": "Luca (2021)",
+    "studio": "Pixar Animation Studios"
+  },
+
+  "base_model": "/mnt/c/AI_LLM_projects/ai_warehouse/models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors",
+
+  "lora_paths": {
+    "character": "/mnt/data/ai_data/models/lora/luca/sdxl_trial1/luca_sdxl_RECOMMENDED.safetensors",
+    "style": "/mnt/c/AI_LLM_projects/ai_warehouse/models/stable-diffusion/checkpoints/PixarXL.safetensors"
+  },
+
+  "lora_weights": {
+    "character": 0.6,
+    "style": 1.2
+  },
+
+  "negative_prompt": "blurry, low quality, worst quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs, bad proportions, malformed limbs, fused fingers, too many fingers, long neck, duplicate, morbid, mutilated, poorly drawn hands, poorly drawn face, bad art, poorly drawn, extra arms, extra legs, cloned face, gross proportions, realistic, photo, photorealistic, hyperrealistic, 2d, flat, sketch, drawing, cartoon 2d, monochrome, grayscale, black and white, lowres, text, watermark, signature",
+
+  "prompt_templates": {
+    "character_base": "luca paguro, young italian boy, 13 years old, brown curly messy hair, bright green eyes, freckles on cheeks",
+    "default_outfit": "purple and white striped shirt",
+    "default_environment": "italian seaside background, sunny day, colorful mediterranean buildings",
+    "style_keywords": "pixar 3d animation style, high quality, detailed textures, vibrant saturated colors, professional cinematic lighting, depth of field"
+  },
+
+  "width": 1024,
+  "height": 1024,
+  "steps": 30,
+  "cfg_scale": 7.5,
+
+  "output_base": "outputs/image_generation/luca_variations",
+
+  "variations": [
+    {
+      "category": "expressions",
+      "seed_offset": 0,
+      "items": [
+        {
+          "category": "expression",
+          "name": "happy_smile",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, big happy smile, joyful expression, laughing, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "expression",
+          "name": "excited",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, excited expression, wide eyes, open mouth in surprise, amazed, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "expression",
+          "name": "curious",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, curious expression, head tilted, inquisitive look, thoughtful, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "expression",
+          "name": "shy",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, shy expression, slight blush, nervous smile, hesitant, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "expression",
+          "name": "determined",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, determined expression, confident look, brave, focused, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        }
+      ]
+    },
+    {
+      "category": "actions",
+      "seed_offset": 100,
+      "items": [
+        {
+          "category": "action",
+          "name": "running",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, running fast, dynamic pose, arms pumping, energetic, purple striped shirt, italian seaside pier, sunny day, motion blur background, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "action",
+          "name": "jumping",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, jumping in the air, arms raised, joyful, mid-air, purple striped shirt, italian seaside background, sunny day, blue sky, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "action",
+          "name": "waving",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, waving hand, friendly gesture, big smile, greeting, purple striped shirt, italian seaside pier, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "action",
+          "name": "sitting",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, sitting on pier edge, legs dangling, relaxed pose, looking at ocean, purple striped shirt, italian seaside, sunny day, sparkling water, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "action",
+          "name": "pointing",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, pointing at something, excited gesture, looking up, purple striped shirt, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        }
+      ]
+    },
+    {
+      "category": "environments",
+      "seed_offset": 200,
+      "items": [
+        {
+          "category": "environment",
+          "name": "beach",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, standing on sandy beach, happy expression, purple striped shirt, sandy beach, ocean waves, seagulls, sunny day, blue sky, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "environment",
+          "name": "town_square",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, standing in italian town square, warm smile, purple striped shirt, colorful italian buildings, cobblestone plaza, fountain, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "environment",
+          "name": "harbor",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, standing at harbor pier, excited expression, purple striped shirt, fishing boats, colorful buildings on hillside, sunny day, mediterranean, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "environment",
+          "name": "countryside",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, standing in italian countryside, happy smile, purple striped shirt, rolling hills, olive trees, villa in distance, golden afternoon light, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "environment",
+          "name": "under_stars",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, looking up at night sky, wonder expression, purple striped shirt, italian seaside at night, stars above, moonlight, romantic atmosphere, pixar 3d animation style, high quality, detailed, vibrant colors"
+        }
+      ]
+    },
+    {
+      "category": "outfits",
+      "seed_offset": 300,
+      "items": [
+        {
+          "category": "outfit",
+          "name": "casual_summer",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, happy smile, casual pose, light blue t-shirt, shorts, italian seaside background, sunny day, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "outfit",
+          "name": "swimming",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, excited expression, ready to swim, swimming trunks, towel over shoulder, beach background, sunny day, ocean waves, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "outfit",
+          "name": "evening_casual",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, warm smile, relaxed pose, red hoodie, comfortable clothes, italian town at sunset, warm lighting, pixar 3d animation style, high quality, detailed, vibrant colors"
+        }
+      ]
+    },
+    {
+      "category": "lighting",
+      "seed_offset": 400,
+      "items": [
+        {
+          "category": "lighting",
+          "name": "golden_hour",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, peaceful expression, warm smile, purple striped shirt, italian seaside, golden hour lighting, warm sunset glow, soft shadows, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "lighting",
+          "name": "midday_bright",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, happy energetic expression, purple striped shirt, italian seaside, bright midday sun, strong lighting, high contrast, pixar 3d animation style, high quality, detailed, vibrant colors"
+        },
+        {
+          "category": "lighting",
+          "name": "overcast",
+          "prompt": "luca paguro, young boy, 13 years old, brown curly hair, green eyes, thoughtful expression, purple striped shirt, italian seaside, cloudy day, soft diffused lighting, gentle atmosphere, pixar 3d animation style, high quality, detailed, vibrant colors"
+        }
+      ]
+    }
+  ]
+}

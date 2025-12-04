@@ -1,0 +1,231 @@
+{
+  "description": "Reusable prompt templates for character generation",
+  "version": "1.0",
+  "last_updated": "2025-11-20",
+
+  "negative_prompts": {
+    "standard": "blurry, low quality, worst quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs, bad proportions, malformed limbs, fused fingers, too many fingers, long neck, duplicate, morbid, mutilated, poorly drawn hands, poorly drawn face, bad art, poorly drawn, extra arms, extra legs, cloned face, gross proportions",
+
+    "no_realistic": "realistic, photo, photorealistic, hyperrealistic",
+
+    "no_2d": "2d, flat, sketch, drawing, cartoon 2d",
+
+    "no_text": "text, watermark, signature, username, artist name",
+
+    "no_color_issues": "monochrome, grayscale, black and white, desaturated",
+
+    "combined_full": "blurry, low quality, worst quality, distorted, ugly, bad anatomy, deformed, disfigured, mutation, mutated, extra limbs, missing limbs, bad proportions, malformed limbs, fused fingers, too many fingers, long neck, duplicate, morbid, mutilated, poorly drawn hands, poorly drawn face, bad art, poorly drawn, extra arms, extra legs, cloned face, gross proportions, realistic, photo, photorealistic, hyperrealistic, 2d, flat, sketch, drawing, cartoon 2d, monochrome, grayscale, black and white, lowres, text, watermark, signature"
+  },
+
+  "style_keywords": {
+    "pixar_3d": "pixar style, 3d animation, high quality, detailed, vibrant colors, professional lighting",
+
+    "disney_3d": "disney style, 3d animation, high quality, detailed, warm colors, cinematic lighting",
+
+    "dreamworks_3d": "dreamworks style, 3d animation, high quality, detailed, dynamic lighting",
+
+    "pixar_detailed": "pixar 3d animation style, high quality, detailed textures, vibrant saturated colors, professional cinematic lighting, depth of field",
+
+    "cel_shaded": "cel shaded, toon shading, anime style, clean lines, bold colors",
+
+    "realistic_3d": "realistic 3d rendering, photorealistic, detailed textures, ray tracing, high resolution"
+  },
+
+  "character_base_templates": {
+    "young_boy": "{name}, young boy, {age} years old, {hair_description}, {eye_description}",
+
+    "young_girl": "{name}, young girl, {age} years old, {hair_description}, {eye_description}",
+
+    "teen_male": "{name}, teenage boy, {age} years old, {hair_description}, {eye_description}",
+
+    "teen_female": "{name}, teenage girl, {age} years old, {hair_description}, {eye_description}",
+
+    "adult_male": "{name}, adult man, {age} years old, {hair_description}, {eye_description}",
+
+    "adult_female": "{name}, adult woman, {age} years old, {hair_description}, {eye_description}"
+  },
+
+  "expression_templates": {
+    "happy": "happy expression, big smile, joyful, cheerful",
+
+    "excited": "excited expression, wide eyes, open mouth in surprise, amazed",
+
+    "curious": "curious expression, head tilted, inquisitive look, thoughtful",
+
+    "shy": "shy expression, slight blush, nervous smile, hesitant",
+
+    "determined": "determined expression, confident look, brave, focused",
+
+    "sad": "sad expression, downcast eyes, melancholy, gloomy",
+
+    "angry": "angry expression, furrowed brow, stern look, upset",
+
+    "surprised": "surprised expression, wide eyes, raised eyebrows, shocked",
+
+    "confused": "confused expression, puzzled look, uncertain",
+
+    "worried": "worried expression, concerned look, anxious, nervous",
+
+    "playful": "playful expression, mischievous smile, teasing look",
+
+    "peaceful": "peaceful expression, calm, serene, relaxed"
+  },
+
+  "action_templates": {
+    "running": "running fast, dynamic pose, arms pumping, energetic, motion blur",
+
+    "jumping": "jumping in the air, arms raised, joyful, mid-air",
+
+    "walking": "walking casually, relaxed stride, natural movement",
+
+    "sitting": "sitting down, relaxed pose, comfortable position",
+
+    "standing": "standing upright, natural pose, balanced stance",
+
+    "waving": "waving hand, friendly gesture, greeting",
+
+    "pointing": "pointing at something, gesture, indicating direction",
+
+    "looking": "looking at {target}, focused gaze, observing",
+
+    "reaching": "reaching out, extending arm, grabbing",
+
+    "dancing": "dancing, rhythmic movement, energetic, lively",
+
+    "fighting": "action pose, combat stance, dynamic movement",
+
+    "flying": "flying through air, soaring, airborne, dynamic"
+  },
+
+  "environment_templates": {
+    "beach": "sandy beach, ocean waves, seagulls, sunny day, blue sky",
+
+    "town_square": "town square, cobblestone plaza, fountain, buildings around",
+
+    "harbor": "harbor pier, fishing boats, water, maritime setting",
+
+    "countryside": "rolling hills, green fields, trees, rural landscape",
+
+    "forest": "dense forest, tall trees, nature, woodland setting",
+
+    "mountain": "mountain landscape, rocky terrain, peaks in background",
+
+    "indoor_room": "indoor room, furniture, walls, ceiling, domestic interior",
+
+    "indoor_hall": "grand hall, high ceiling, pillars, spacious interior",
+
+    "night_sky": "night sky, stars above, moonlight, nighttime atmosphere",
+
+    "sunset": "sunset scene, orange sky, golden hour lighting, warm glow",
+
+    "underwater": "underwater scene, bubbles, fish, aquatic environment",
+
+    "space": "outer space, stars, planets, cosmic background"
+  },
+
+  "outfit_templates": {
+    "casual_shirt": "casual shirt, comfortable pants, everyday clothes",
+
+    "t_shirt_shorts": "t-shirt, shorts, casual summer wear",
+
+    "hoodie": "hoodie, comfortable casual wear, relaxed style",
+
+    "formal": "formal attire, suit or dress, professional clothing",
+
+    "school_uniform": "school uniform, neat appearance, student clothing",
+
+    "sports": "sports wear, athletic clothing, active outfit",
+
+    "swimwear": "swimsuit, beach wear, swimming clothes",
+
+    "winter_coat": "winter coat, warm clothing, cold weather outfit",
+
+    "raincoat": "raincoat, waterproof clothing, rain gear",
+
+    "pajamas": "pajamas, sleepwear, comfortable nighttime clothing"
+  },
+
+  "lighting_templates": {
+    "golden_hour": "golden hour lighting, warm sunset glow, soft shadows, orange ambient",
+
+    "midday_bright": "bright midday sun, strong lighting, high contrast, clear shadows",
+
+    "overcast": "overcast lighting, soft diffused light, gentle shadows, cloudy day",
+
+    "night": "night lighting, dark atmosphere, moonlight, artificial lights",
+
+    "indoor_warm": "warm indoor lighting, cozy atmosphere, soft lamp light",
+
+    "indoor_cool": "cool indoor lighting, fluorescent lights, neutral tones",
+
+    "dramatic": "dramatic lighting, strong contrast, rim light, cinematic",
+
+    "backlit": "backlit, silhouette, glowing edges, rim lighting",
+
+    "spotlight": "spotlight, focused light, dark background, stage lighting",
+
+    "natural_window": "natural window light, soft shadows, daylight indoors"
+  },
+
+  "camera_angles": {
+    "portrait": "portrait shot, head and shoulders, close up",
+
+    "medium_shot": "medium shot, waist up, half body",
+
+    "full_body": "full body shot, head to toe, complete figure",
+
+    "wide_shot": "wide shot, character in environment, establishing shot",
+
+    "low_angle": "low angle, looking up, dramatic perspective",
+
+    "high_angle": "high angle, looking down, overhead view",
+
+    "eye_level": "eye level, neutral perspective, straight on",
+
+    "over_shoulder": "over the shoulder, third person perspective",
+
+    "dynamic": "dynamic angle, tilted perspective, action shot"
+  },
+
+  "quality_modifiers": {
+    "high_quality": "high quality, detailed, masterpiece, best quality",
+
+    "detailed": "highly detailed, intricate details, fine textures",
+
+    "professional": "professional quality, expert craftsmanship, polished",
+
+    "vibrant": "vibrant colors, saturated, colorful, rich tones",
+
+    "cinematic": "cinematic composition, movie quality, cinematic lighting",
+
+    "depth": "depth of field, bokeh, focused subject, blurred background"
+  },
+
+  "composition_tips": {
+    "order": [
+      "1. Character name and basic description",
+      "2. Age and physical features (hair, eyes)",
+      "3. Expression or emotion",
+      "4. Action or pose",
+      "5. Outfit/clothing",
+      "6. Environment/background",
+      "7. Lighting conditions",
+      "8. Style keywords (Pixar, 3D, etc)",
+      "9. Quality modifiers"
+    ],
+
+    "token_limit": "CLIP tokenizer limits prompts to 77 tokens. Prioritize essential elements first.",
+
+    "weight_syntax": "Use (keyword:weight) for emphasis. Example: (detailed face:1.2)",
+
+    "negative_importance": "Good negative prompts are crucial. Include anatomical issues, quality problems, and unwanted styles."
+  },
+
+  "example_prompts": {
+    "luca_standard": "luca paguro, young italian boy, 13 years old, brown curly messy hair, bright green eyes, freckles on cheeks, happy smile, purple striped shirt, italian seaside pier, sunny day, colorful buildings, pixar 3d animation style, high quality, vibrant colors",
+
+    "alberto_excited": "alberto scorfano, teenage boy, 14 years old, wild brown hair, green eyes, excited expression, pointing gesture, sleeveless shirt, italian seaside town, sunny day, pixar style, 3d animation, detailed",
+
+    "giulia_determined": "giulia marcovaldo, young girl, 13 years old, red curly hair, brown eyes, determined expression, hands on hips, casual t-shirt, town square, golden hour lighting, pixar 3d animation, vibrant colors"
+  }
+}

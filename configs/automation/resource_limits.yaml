@@ -1,0 +1,242 @@
+# Resource Limits Configuration
+#
+# Defines memory thresholds, CPU limits, and process constraints for CPU-only automation.
+# These settings ensure automation workflows do not interfere with GPU training processes.
+#
+# Integration with System Watchdog (Auto_Protection_Guide.txt):
+#   - System watchdog: 80% RAM warning, 90% emergency
+#   - This config:    70% warning, 80% critical, 85% emergency (more conservative)
+#   - Automation OOM priority: +500 (killable before training at -300)
+#
+# Author: Animation AI Studio Team
+# Last Modified: 2025-12-02
+
+# ============================================================================
+# Memory Configuration
+# ============================================================================
+
+memory:
+  # Maximum RAM automation workflows can use (in GB)
+  # Set to 24.0 for "aggressive mode" on 128GB system
+  max_process_ram_gb: 24.0
+
+  # System RAM to always keep free (in GB)
+  # Ensures desktop environment and training processes are not starved
+  reserve_system_ram_gb: 18.0
+
+  # Memory safety thresholds (as percentage of total RAM)
+  thresholds:
+    # Warning level (70%): Reduce batch size by 50%
+    warning_percent: 70.0
+
+    # Critical level (80%): Switch to minimal batch, enable streaming mode
+    critical_percent: 80.0
+
+    # Emergency level (85%): Save checkpoint and exit gracefully
+    emergency_percent: 85.0
+
+  # Swap memory thresholds
+  swap:
+    # Warn if swap usage exceeds this percentage
+    warning_percent: 10.0
+
+    # Error if swap usage exceeds this percentage (indicates memory pressure)
+    critical_percent: 25.0
+
+# ============================================================================
+# CPU Configuration
+# ============================================================================
+
+cpu:
+  # Maximum CPU threads for automation processes
+  # Utilize all 32 threads for CPU-intensive tasks (scene detection, image processing)
+  # Training uses GPU, so CPU threads are available for automation
+  max_threads: 32
+
+  # Process nice priority (0-19, higher = lower priority)
+  # Set to 10 to ensure training gets priority
+  nice_priority: 10
+
+  # CPU affinity (list of CPU core IDs to bind to)
+  # null = auto-select first 8 cores
+  # [0, 1, 2, 3, 4, 5, 6, 7] = explicitly bind to cores 0-7
+  affinity: null
+
+# ============================================================================
+# Process Configuration
+# ============================================================================
+
+process:
+  # Maximum concurrent automation workflows
+  # Limit to prevent resource exhaustion
+  max_concurrent_workflows: 2
+
+  # OOM score adjustment for automation processes
+  # Positive values = more likely to be killed by OOM killer
+  # Training processes use -300, automation uses +500
+  oom_score_adj: 500
+
+  # Maximum subprocess depth (prevents fork bombs)
+  max_subprocess_depth: 3
+
+# ============================================================================
+# Disk I/O Configuration
+# ============================================================================
+
+disk:
+  # Minimum free disk space required (in GB) before starting workflow
+  min_free_space_gb: 50.0
+
+  # I/O priority class (idle, best-effort, real-time)
+  # Use "idle" to minimize impact on training checkpoints
+  io_priority_class: "best-effort"
+
+  # I/O priority level (0-7, lower = higher priority)
+  io_priority_level: 7
+
+# ============================================================================
+# Monitoring Configuration
+# ============================================================================
+
+monitoring:
+  # Interval between safety checks (in seconds)
+  check_interval_seconds: 30.0
+
+  # Enable GPU isolation checks during runtime
+  enable_gpu_checks: true
+
+  # Enable memory safety checks during runtime
+  enable_memory_checks: true
+
+  # Enable disk space checks during runtime
+  enable_disk_checks: true
+
+  # Log monitoring stats to file
+  log_stats: true
+  stats_log_interval_seconds: 300.0  # Every 5 minutes
+
+# ============================================================================
+# Emergency Actions
+# ============================================================================
+
+emergency:
+  # Save checkpoint before exiting on emergency
+  save_checkpoint: true
+  checkpoint_dir: "/mnt/data/tmp/automation/emergency_checkpoints"
+
+  # Send notification on emergency (future feature)
+  send_notification: false
+  notification_webhook: null
+
+  # Graceful shutdown timeout (seconds)
+  # If workflow doesn't exit in this time, force kill
+  shutdown_timeout_seconds: 60.0
+
+# ============================================================================
+# Batch Size Auto-Adjustment
+# ============================================================================
+
+batch_size:
+  # Enable automatic batch size reduction based on memory level
+  auto_adjust: true
+
+  # Batch size reductions per memory level
+  adjustments:
+    normal: 1.0     # No reduction
+    warning: 0.5    # 50% reduction
+    critical: 0.1   # 90% reduction (minimal batch)
+    emergency: 0.0  # Stop processing, save checkpoint
+
+  # Minimum batch size (never go below this)
+  min_batch_size: 1
+
+# ============================================================================
+# Cache Management
+# ============================================================================
+
+cache:
+  # Maximum cache size (in GB) for HuggingFace models/datasets
+  max_hf_cache_gb: 100.0
+
+  # Maximum cache size (in GB) for PyTorch models
+  max_torch_cache_gb: 50.0
+
+  # Auto-clean cache when exceeding limits
+  auto_clean: true
+
+  # Cache cleaning strategy (lru = least recently used)
+  clean_strategy: "lru"
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+
+  # Log file location
+  file: "/mnt/data/training/logs/automation.log"
+
+  # Log rotation (size in MB)
+  max_file_size_mb: 100.0
+  backup_count: 5
+
+  # Include timestamps in logs
+  include_timestamp: true
+
+  # Include memory stats in logs
+  include_memory_stats: true
+
+# ============================================================================
+# API Configuration (Remote LLMs)
+# ============================================================================
+
+api:
+  # API rate limits (requests per minute)
+  rate_limits:
+    anthropic: 50
+    openai: 60
+
+  # API timeout (seconds)
+  timeout_seconds: 120.0
+
+  # Retry configuration
+  max_retries: 3
+  retry_delay_seconds: 2.0
+
+  # Cache API responses
+  cache_responses: true
+  cache_ttl_seconds: 3600  # 1 hour
+
+# ============================================================================
+# Workflow Execution Limits
+# ============================================================================
+
+workflow:
+  # Maximum workflow execution time (seconds)
+  # null = no limit
+  max_execution_time_seconds: 86400  # 24 hours
+
+  # Maximum number of tasks per workflow
+  max_tasks_per_workflow: 100
+
+  # Enable task parallelization
+  enable_parallel_tasks: true
+
+  # Maximum parallel tasks
+  max_parallel_tasks: 4
+
+# ============================================================================
+# Validation
+# ============================================================================
+
+validation:
+  # Validate configuration on load
+  validate_on_load: true
+
+  # Strict validation (fail on warnings)
+  strict: false
+
+  # Check resource availability on load
+  check_resources: true

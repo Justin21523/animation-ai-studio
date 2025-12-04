@@ -1,0 +1,124 @@
+# YOLO to COCO Format Conversion Configuration
+# 將 YOLO 格式標註轉換為 COCO 格式
+
+# 專案資訊
+project:
+  name: "YOLO to COCO Conversion"
+  description: "Convert YOLO format annotations to COCO format for various ML frameworks"
+  version: "1.0.0"
+
+# 轉換設定
+conversion:
+  # 輸入格式: coco, yolo, voc
+  input_format: yolo
+
+  # 輸出格式: coco, yolo, voc
+  output_format: coco
+
+  # YOLO 標籤目錄
+  labels_dir: /path/to/yolo/labels
+
+  # YOLO 類別檔案
+  classes_file: /path/to/yolo/classes.txt
+
+  # 影像目錄
+  images_dir: /path/to/images
+
+  # COCO 輸出檔案路徑
+  output_file: /path/to/output/annotations.json
+
+# COCO 資料集資訊
+dataset_info:
+  # 資料集描述
+  description: "Converted from YOLO format"
+
+  # 貢獻者
+  contributor: "Annotation Tool"
+
+  # 創建日期（自動填充）
+  date_created: ""
+
+  # 版本
+  version: "1.0"
+
+  # 授權
+  license: ""
+
+  # 參考 URL
+  url: ""
+
+# 類別設定
+categories:
+  # 父類別名稱（所有類別的共同父類別）
+  supercategory: "object"
+
+  # 是否自動生成類別 ID（從 0 開始）
+  auto_generate_ids: true
+
+# 影像設定
+images:
+  # 影像檔案格式
+  allowed_formats:
+    - jpg
+    - jpeg
+    - png
+    - bmp
+
+  # 是否遞迴搜尋子目錄
+  recursive: false
+
+  # 是否驗證影像檔案可讀性
+  validate_images: true
+
+# 標註設定
+annotations:
+  # 是否計算邊界框面積
+  compute_area: true
+
+  # 是否設置 iscrowd 標記
+  set_iscrowd: false
+
+  # iscrowd 預設值
+  default_iscrowd: 0
+
+# 驗證設定
+validation:
+  # 是否驗證邊界框有效性
+  validate_bbox: true
+
+  # 是否檢查影像檔案存在
+  check_image_files: true
+
+  # 是否驗證類別一致性
+  validate_categories: true
+
+  # 最小邊界框尺寸（像素）
+  min_bbox_size: 1
+
+# 過濾設定
+filtering:
+  # 是否過濾無效標註
+  filter_invalid: true
+
+  # 是否過濾太小的邊界框
+  filter_small_bbox: true
+
+  # 最小邊界框面積（像素）
+  min_bbox_area: 100
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/annotation_tool_yolo_to_coco.log
+  console: true
+
+# 輸出設定
+output:
+  # JSON 縮排
+  indent: 2
+
+  # 是否生成統計報告
+  generate_report: true
+
+  # 報告檔案路徑
+  report_file: /path/to/output/conversion_report.json

@@ -1,0 +1,194 @@
+# Example Automation Workflow Configuration
+#
+# This demonstrates Phase 1 CPU-only automation scenarios for content analysis and organization.
+# All scenarios run on CPU while GPU training continues uninterrupted.
+#
+# Usage:
+#   # Source CPU-only environment
+#   source configs/automation/cpu_only_env.sh
+#
+#   # Run individual scenarios
+#   python scripts/automation/scenarios/media_asset_analyzer.py --config configs/automation/example_workflow.yaml
+#
+# Author: Animation AI Studio Team
+# Last Modified: 2025-12-02
+
+# ============================================================================
+# Workflow Metadata
+# ============================================================================
+
+workflow:
+  name: "Content Analysis and Organization"
+  description: "Analyze video content, categorize frames, and build knowledge base for RAG"
+  version: "1.0.0"
+  author: "Animation AI Studio Team"
+
+# ============================================================================
+# Scenario 1: Media Asset Analyzer
+# ============================================================================
+
+media_analysis:
+  enabled: true
+
+  # Input video file or directory
+  input_video: "/mnt/data/datasets/general/luca/raw_videos/luca_film.ts"
+
+  # Output path for analysis report
+  output_report: "/mnt/data/ai_data/analysis/luca/video_analysis.json"
+
+  # Scene detection settings
+  scene_detection:
+    threshold: 27.0           # Lower = more sensitive to scene changes
+    min_scene_length: 15      # Minimum frames per scene
+
+  # Frame extraction (optional)
+  extract_frames:
+    enabled: true
+    frames_per_scene: 5       # Representative frames per scene
+    output_dir: "/mnt/data/ai_data/analysis/luca/frames"
+    quality_threshold: 100.0  # Minimum sharpness (Laplacian variance)
+
+  # Processing
+  batch_size: 10              # Frames to process before checkpoint
+
+# ============================================================================
+# Scenario 2: Auto Categorizer
+# ============================================================================
+
+auto_categorization:
+  enabled: true
+
+  # Input directory (frames from media analysis)
+  input_dir: "/mnt/data/ai_data/analysis/luca/frames"
+
+  # Output categorization report
+  output_report: "/mnt/data/ai_data/analysis/luca/categorization.json"
+
+  # Categories for classification
+  categories:
+    - "character_closeup"
+    - "character_medium_shot"
+    - "character_full_body"
+    - "wide_shot_scene"
+    - "establishing_shot"
+    - "action_sequence"
+    - "dialogue_scene"
+    - "background_only"
+
+  # API settings
+  api:
+    provider: "anthropic"     # anthropic or openai
+    model: "claude-3-5-sonnet-20241022"
+    rate_limit_rpm: 50        # Requests per minute
+
+  # Processing
+  batch_size: 10              # Images per checkpoint
+  file_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".webp"
+
+# ============================================================================
+# Scenario 3: Knowledge Base Builder
+# ============================================================================
+
+knowledge_base:
+  enabled: true
+
+  # Input documents directory
+  input_dir: "/mnt/c/ai_projects/animation-ai-studio/docs"
+
+  # Output knowledge base directory
+  output_dir: "/mnt/data/ai_data/knowledge_bases/animation_studio_docs"
+
+  # Embedding model (sentence-transformers)
+  embedding_model: "sentence-transformers/all-mpnet-base-v2"
+
+  # Text chunking
+  chunking:
+    chunk_size: 512           # Characters per chunk
+    chunk_overlap: 128        # Overlap between chunks
+    separator: "\n\n"         # Preferred split points
+
+  # Vector database
+  vector_db:
+    type: "faiss"             # faiss or chromadb
+    index_type: "flat"        # flat or hnsw
+
+  # Processing
+  batch_size: 32              # Texts per embedding batch
+
+  # Supported document types
+  document_types:
+    - ".txt"
+    - ".md"
+    - ".markdown"
+    - ".pdf"
+    # - ".jpg"  # Enable for OCR
+    # - ".png"  # Enable for OCR
+
+# ============================================================================
+# Resource Limits (Override global settings)
+# ============================================================================
+
+resources:
+  # Memory
+  max_process_ram_gb: 24.0
+  reserve_system_ram_gb: 18.0
+
+  # CPU
+  max_threads: 32             # Utilize all 32 cores
+  nice_priority: 10           # Process priority
+
+  # Disk
+  min_free_space_gb: 50.0
+
+  # Monitoring
+  check_interval_seconds: 30.0
+
+# ============================================================================
+# Safety and Checkpointing
+# ============================================================================
+
+safety:
+  # Enable preflight checks
+  run_preflight: true
+  strict_mode: false          # Continue on warnings
+
+  # Memory thresholds
+  memory_thresholds:
+    warning_percent: 70.0     # Reduce batch size
+    critical_percent: 80.0    # Minimal batch
+    emergency_percent: 85.0   # Save checkpoint and exit
+
+  # Checkpointing
+  checkpoint:
+    enabled: true
+    interval_items: 10        # Save every N items
+    directory: "/mnt/data/tmp/automation/checkpoints"
+    auto_resume: true         # Resume from checkpoint on restart
+
+# ============================================================================
+# Logging
+# ============================================================================
+
+logging:
+  level: "INFO"               # DEBUG, INFO, WARNING, ERROR
+  file: "/mnt/data/ai_data/logs/automation/workflow.log"
+  console: true
+  include_timestamps: true
+  include_memory_stats: true
+  rotation:
+    max_size_mb: 100.0
+    backup_count: 5
+
+# ============================================================================
+# Notifications (Future Feature)
+# ============================================================================
+
+notifications:
+  enabled: false
+  webhooks:
+    - url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+      events: ["workflow_complete", "workflow_error", "memory_warning"]

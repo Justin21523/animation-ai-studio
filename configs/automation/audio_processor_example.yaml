@@ -1,0 +1,293 @@
+# 音訊處理器批次配置範例 (Audio Processor Batch Configuration Example)
+#
+# 此配置檔案示範各種音訊處理操作，包括提取、轉換、切割、拼接、
+# 音量正規化和靜音處理。
+#
+# 使用方式 (Usage):
+#   python scripts/automation/scenarios/audio_processor.py \
+#     --operation batch \
+#     --batch-config configs/automation/audio_processor_example.yaml
+#
+# 作者 (Author): Animation AI Studio Team
+# 最後修改 (Last Modified): 2025-12-02
+
+# ============================================================================
+# 全域配置 (Global Configuration)
+# ============================================================================
+
+# 執行緒數量 (Thread count) - 建議使用 32 for 32-thread CPU
+threads: 32
+
+# 音訊格式設定 (Audio format settings)
+audio:
+  sample_rate: 48000      # 取樣率 (Sample rate) in Hz
+  channels: 2             # 聲道數 (Channels): 1=mono, 2=stereo
+  bitrate: 192k           # 位元率 (Bitrate) for compressed formats
+
+# 靜音檢測設定 (Silence detection settings)
+silence:
+  noise_threshold: -40    # 噪音閾值 (Noise threshold) in dB
+  min_duration: 0.5       # 最小靜音時長 (Minimum silence duration) in seconds
+
+# ============================================================================
+# 批次操作 (Batch Operations)
+# ============================================================================
+
+operations:
+  # --------------------------------------------------------------------------
+  # 範例 1: 從影片提取音訊 (Extract audio from video)
+  # --------------------------------------------------------------------------
+  - operation: extract
+    input: /mnt/data/datasets/general/luca/raw_videos/luca_film.ts
+    output: /tmp/audio_processor_batch/luca_audio.wav
+    format: wav
+    sample_rate: 48000
+    channels: 2
+
+  # --------------------------------------------------------------------------
+  # 範例 2: 轉換音訊格式 WAV → MP3 (Convert audio format WAV → MP3)
+  # --------------------------------------------------------------------------
+  - operation: convert
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_audio.mp3
+    output_format: mp3
+    bitrate: 192k
+
+  # --------------------------------------------------------------------------
+  # 範例 3: 切割音訊片段 (Cut audio segment)
+  # --------------------------------------------------------------------------
+  - operation: cut
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_segment_00_10.wav
+    start_time: 0.0
+    duration: 10.0
+
+  - operation: cut
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_segment_10_20.wav
+    start_time: 10.0
+    duration: 10.0
+
+  - operation: cut
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_segment_20_30.wav
+    start_time: 20.0
+    duration: 10.0
+
+  # --------------------------------------------------------------------------
+  # 範例 4: 拼接音訊檔案 (Concatenate audio files)
+  # --------------------------------------------------------------------------
+  - operation: concat
+    inputs:
+      - /tmp/audio_processor_batch/luca_segment_00_10.wav
+      - /tmp/audio_processor_batch/luca_segment_10_20.wav
+      - /tmp/audio_processor_batch/luca_segment_20_30.wav
+    output: /tmp/audio_processor_batch/luca_concatenated.wav
+
+  # --------------------------------------------------------------------------
+  # 範例 5: 音量正規化 (Normalize volume)
+  # --------------------------------------------------------------------------
+  - operation: normalize
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_normalized.wav
+    target_level: -16dB     # 目標音量 (Target volume level)
+
+  # --------------------------------------------------------------------------
+  # 範例 6: 檢測靜音片段 (Detect silence segments)
+  # --------------------------------------------------------------------------
+  - operation: detect_silence
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    noise_threshold: -40
+    min_silence_duration: 0.5
+
+  # --------------------------------------------------------------------------
+  # 範例 7: 移除靜音 (Remove silence)
+  # --------------------------------------------------------------------------
+  - operation: remove_silence
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_no_silence.wav
+    noise_threshold: -40
+    min_silence_duration: 0.5
+
+  # --------------------------------------------------------------------------
+  # 範例 8: 提取音訊 Metadata (Extract audio metadata)
+  # --------------------------------------------------------------------------
+  - operation: metadata
+    input: /tmp/audio_processor_batch/luca_audio.wav
+
+  # --------------------------------------------------------------------------
+  # 範例 9: 轉換為 FLAC 無損格式 (Convert to FLAC lossless format)
+  # --------------------------------------------------------------------------
+  - operation: convert
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_audio.flac
+    output_format: flac
+
+  # --------------------------------------------------------------------------
+  # 範例 10: 轉換為單聲道 (Convert to mono)
+  # --------------------------------------------------------------------------
+  - operation: convert
+    input: /tmp/audio_processor_batch/luca_audio.wav
+    output: /tmp/audio_processor_batch/luca_audio_mono.wav
+    output_format: wav
+    channels: 1
+
+# ============================================================================
+# 工作流程範例 (Workflow Examples)
+# ============================================================================
+
+# 工作流程 1: 完整音訊處理流程 (Complete audio processing pipeline)
+# ------------------------------------------------------------------
+# 1. 從影片提取音訊 (Extract audio from video)
+# 2. 正規化音量 (Normalize volume)
+# 3. 移除靜音 (Remove silence)
+# 4. 轉換為 MP3 格式 (Convert to MP3)
+#
+# 這會產生：
+#   - 原始音訊 WAV (Original audio WAV)
+#   - 正規化的 WAV (Normalized WAV)
+#   - 移除靜音的 WAV (No-silence WAV)
+#   - 最終 MP3 (Final MP3)
+
+# 工作流程 2: 音訊切割與拼接 (Audio segmentation and concatenation)
+# ------------------------------------------------------------------
+# 1. 將長音訊切割成多個片段 (Cut long audio into segments)
+# 2. 處理每個片段（如去噪、正規化）(Process each segment)
+# 3. 重新拼接 (Re-concatenate)
+#
+# 適用於：逐段處理、去除特定片段 (Good for: segment processing, removing specific parts)
+
+# 工作流程 3: 多格式轉換 (Multi-format conversion)
+# ------------------------------------------------------------------
+# 1. 從影片提取高品質 WAV (Extract high-quality WAV from video)
+# 2. 轉換為 MP3 (網頁播放) (Convert to MP3 for web)
+# 3. 轉換為 FLAC (歸檔保存) (Convert to FLAC for archival)
+# 4. 轉換為 AAC (行動裝置) (Convert to AAC for mobile)
+#
+# 適用於：多平台分發 (Good for: multi-platform distribution)
+
+# ============================================================================
+# 音訊格式指南 (Audio Format Guide)
+# ============================================================================
+
+# WAV (無損, Lossless):
+#   - 編碼 (Codec): pcm_s16le
+#   - 優點 (Pros): 最高品質、無損、兼容性好 (Best quality, lossless, compatible)
+#   - 缺點 (Cons): 檔案大 (Large file size)
+#   - 用途 (Use): 編輯、後製、歸檔 (Editing, post-production, archival)
+
+# MP3 (有損, Lossy):
+#   - 編碼 (Codec): libmp3lame
+#   - 位元率 (Bitrate): 128k (低), 192k (中), 320k (高) (low/medium/high)
+#   - 優點 (Pros): 檔案小、通用性強 (Small size, universal compatibility)
+#   - 缺點 (Cons): 有損壓縮 (Lossy compression)
+#   - 用途 (Use): 網頁播放、串流 (Web playback, streaming)
+
+# FLAC (無損, Lossless):
+#   - 編碼 (Codec): flac
+#   - 優點 (Pros): 無損、檔案較 WAV 小 (Lossless, smaller than WAV)
+#   - 缺點 (Cons): 兼容性不如 WAV (Less compatible than WAV)
+#   - 用途 (Use): 高品質歸檔 (High-quality archival)
+
+# AAC (有損, Lossy):
+#   - 編碼 (Codec): aac
+#   - 優點 (Pros): 比 MP3 品質更好 (Better quality than MP3)
+#   - 缺點 (Cons): 有損壓縮 (Lossy compression)
+#   - 用途 (Use): 影片音訊、行動裝置 (Video audio, mobile devices)
+
+# OGG Vorbis (有損, Lossy):
+#   - 編碼 (Codec): libvorbis
+#   - 優點 (Pros): 開源、品質好 (Open-source, good quality)
+#   - 缺點 (Cons): 較少裝置支援 (Less device support)
+#   - 用途 (Use): 遊戲、開源專案 (Gaming, open-source projects)
+
+# ============================================================================
+# 參數說明 (Parameter Descriptions)
+# ============================================================================
+
+# sample_rate (取樣率):
+#   - 44100 Hz: CD 品質 (CD quality)
+#   - 48000 Hz: 專業音訊、影片標準 (Professional audio, video standard)
+#   - 96000 Hz: 高解析度音訊 (High-resolution audio)
+
+# channels (聲道):
+#   - 1: 單聲道 (Mono) - 語音、podcast
+#   - 2: 立體聲 (Stereo) - 音樂、影片
+
+# bitrate (位元率):
+#   - 128k: 低品質但檔案小 (Low quality, small size)
+#   - 192k: 平衡品質與大小 (Balanced quality/size)
+#   - 320k: 高品質 (High quality)
+
+# noise_threshold (噪音閾值):
+#   - -30dB: 只檢測非常安靜的部分 (Detect only very quiet parts)
+#   - -40dB: 標準靜音檢測 (Standard silence detection)
+#   - -50dB: 檢測更多靜音區域 (Detect more silence regions)
+
+# target_level (目標音量):
+#   - -16dB: 標準響度目標 (Standard loudness target)
+#   - -12dB: 較大聲（適合音樂）(Louder, good for music)
+#   - -20dB: 較小聲（適合語音）(Quieter, good for speech)
+
+# ============================================================================
+# 最佳實踐 (Best Practices)
+# ============================================================================
+
+# 1. 格式選擇 (Format selection):
+#    - 編輯時使用 WAV (Use WAV for editing)
+#    - 分發時使用 MP3 或 AAC (Use MP3/AAC for distribution)
+#    - 歸檔時使用 FLAC (Use FLAC for archival)
+
+# 2. 品質設定 (Quality settings):
+#    - 語音：單聲道、44100 Hz、128k MP3 (Speech: mono, 44100 Hz, 128k MP3)
+#    - 音樂：立體聲、48000 Hz、192k+ MP3 (Music: stereo, 48000 Hz, 192k+ MP3)
+#    - 專業：立體聲、48000 Hz、WAV/FLAC (Professional: stereo, 48000 Hz, WAV/FLAC)
+
+# 3. 批次處理 (Batch processing):
+#    - 先測試單個檔案 (Test on single file first)
+#    - 使用 tmux/screen 執行長時間任務 (Use tmux/screen for long jobs)
+#    - 監控記憶體使用量 (Monitor memory usage)
+
+# 4. 音量處理 (Volume processing):
+#    - 先正規化再進行其他處理 (Normalize before other processing)
+#    - 檢查是否有削波現象 (Check for clipping)
+#    - 使用一致的目標音量 (Use consistent target level)
+
+# 5. 靜音處理 (Silence handling):
+#    - 調整閾值以符合需求 (Adjust threshold to match needs)
+#    - 檢測後手動審查再移除 (Detect and manually review before removing)
+#    - 保留適當的間隔 (Keep appropriate gaps)
+
+# ============================================================================
+# 疑難排解 (Troubleshooting)
+# ============================================================================
+
+# 問題: FFmpeg 錯誤 (Issue: FFmpeg error)
+# 解決: 檢查 FFmpeg 是否已安裝，執行 `which ffmpeg`
+#      (Solution: Check FFmpeg installation with `which ffmpeg`)
+
+# 問題: 音訊品質不佳 (Issue: Poor audio quality)
+# 解決: 提高位元率或使用無損格式
+#      (Solution: Increase bitrate or use lossless format)
+
+# 問題: 檔案太大 (Issue: File too large)
+# 解決: 使用較低位元率或有損格式
+#      (Solution: Use lower bitrate or lossy format)
+
+# 問題: 靜音檢測不準確 (Issue: Inaccurate silence detection)
+# 解決: 調整噪音閾值和最小時長參數
+#      (Solution: Adjust noise threshold and min duration)
+
+# 問題: 記憶體警告 (Issue: Memory warnings)
+# 解決: 縮小批次大小或處理較短的音訊
+#      (Solution: Reduce batch size or process shorter audio)
+
+# ============================================================================
+# 注意事項 (Notes)
+# ============================================================================
+
+# - 僅使用 CPU 處理 (CPU-only processing)
+# - 32 執行緒完全利用 (Full 32-thread utilization)
+# - 整合 Phase 1 安全基礎設施 (Integrated with Phase 1 safety infrastructure)
+# - 支援所有常見音訊格式 (Supports all common audio formats)
+# - 適合長時間批次處理 (Suitable for long batch processing)

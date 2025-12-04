@@ -1,0 +1,572 @@
+# File Organizer 配置範例
+# =========================
+#
+# 此檔案提供 File Organizer 的完整配置範例
+# File Organizer 主要透過 CLI 使用，但可以使用 shell script 組合複雜工作流程
+
+# ============================================================================
+# 基本使用範例（透過 CLI）
+# ============================================================================
+
+# 範例 1：按類型組織
+# python scripts/automation/scenarios/file_organizer.py \
+#   --skip-preflight \
+#   organize-by-type \
+#   --input /path/to/input \
+#   --output /path/to/output
+
+# 範例 2：尋找重複檔案
+# python scripts/automation/scenarios/file_organizer.py \
+#   --skip-preflight \
+#   find-duplicates \
+#   --input /path/to/check \
+#   --method hash
+
+# ============================================================================
+# 工作流程範例 1：完整下載資料夾清理
+# ============================================================================
+
+workflow_download_cleanup:
+  description: "清理雜亂的下載資料夾"
+
+  steps:
+    - name: "尋找重複檔案"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          find-duplicates \
+          --input ~/Downloads \
+          --method hash \
+          --min-size 1048576 \
+          --output-json /tmp/duplicates_$(date +%Y%m%d).json
+
+    - name: "按類型組織"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-type \
+          --input ~/Downloads \
+          --output ~/Organized \
+          --move
+
+    - name: "分析結果"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          analyze-disk-space \
+          --input ~/Organized \
+          --depth 2
+
+# ============================================================================
+# 工作流程範例 2：照片整理
+# ============================================================================
+
+workflow_photo_organization:
+  description: "按日期組織照片並尋找重複"
+
+  input_dir: "/path/to/Photos"
+  output_dir: "/path/to/Photos_by_Date"
+
+  steps:
+    - name: "按日期組織"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-date \
+          --input ${input_dir} \
+          --output ${output_dir} \
+          --date-format "%Y/%m"
+
+    - name: "尋找重複照片"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          find-duplicates \
+          --input ${output_dir} \
+          --method hash \
+          --output-json /tmp/photo_duplicates.json
+
+# ============================================================================
+# 工作流程範例 3：專案歸檔
+# ============================================================================
+
+workflow_project_archiving:
+  description: "整理舊專案檔案"
+
+  projects_dir: "/path/to/Projects"
+  archive_dir: "/path/to/Archive"
+  cutoff_date: "2024-06-01"
+
+  steps:
+    - name: "搜尋舊檔案"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          search \
+          --input ${projects_dir} \
+          --modified-before ${cutoff_date} \
+          --output-list /tmp/old_files.txt
+
+    - name: "分析空間"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          analyze-disk-space \
+          --input ${projects_dir} \
+          --depth 3 \
+          --output-json /tmp/space_analysis.json
+
+    - name: "歸檔"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-date \
+          --input ${projects_dir} \
+          --output ${archive_dir} \
+          --date-format "%Y-Q%m" \
+          --move
+
+# ============================================================================
+# 工作流程範例 4：重複檔案清理
+# ============================================================================
+
+workflow_duplicate_cleanup:
+  description: "尋找並報告重複檔案"
+
+  steps:
+    - name: "快速篩選（按大小）"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          find-duplicates \
+          --input /path/to/data \
+          --method size \
+          --min-size 10485760 \
+          --output-json /tmp/duplicates_size.json
+
+    - name: "精確確認（按 hash）"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          find-duplicates \
+          --input /path/to/data \
+          --method hash \
+          --min-size 10485760 \
+          --output-json /tmp/duplicates_hash.json
+
+# ============================================================================
+# 工作流程範例 5：批次重命名
+# ============================================================================
+
+workflow_batch_rename:
+  description: "批次重命名檔案"
+
+  steps:
+    - name: "重命名照片（regex）"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          batch-rename \
+          --input /path/to/photos \
+          --pattern "IMG_(\d{4}).jpg" \
+          --replacement "photo_\1.jpg" \
+          --use-regex
+
+    - name: "重命名備份（glob）"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          batch-rename \
+          --input /path/to/backups \
+          --pattern "*.bak" \
+          --replacement "backup_*.txt"
+
+# ============================================================================
+# 工作流程範例 6：定期維護腳本
+# ============================================================================
+
+workflow_weekly_maintenance:
+  description: "每週執行的維護任務"
+  schedule: "weekly"
+
+  steps:
+    - name: "尋找重複檔案"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          find-duplicates \
+          --input /data \
+          --method hash \
+          --output-json /var/log/duplicates_$(date +%Y%m%d).json
+
+    - name: "空間分析"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          analyze-disk-space \
+          --input /data \
+          --depth 3 \
+          --output-json /var/log/space_$(date +%Y%m%d).json
+
+    - name: "搜尋舊檔案"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          search \
+          --input /data \
+          --modified-before $(date -d '1 year ago' +%Y-%m-%d) \
+          --output-list /var/log/old_files.txt
+
+# ============================================================================
+# Shell Script 範例
+# ============================================================================
+
+# cleanup_downloads.sh
+# #!/bin/bash
+# set -e
+#
+# DOWNLOADS="$HOME/Downloads"
+# ORGANIZED="$HOME/Organized"
+# DATE=$(date +%Y%m%d)
+#
+# echo "🚀 Starting download cleanup..."
+#
+# # Step 1: Find duplicates
+# echo "🔍 Finding duplicates..."
+# python scripts/automation/scenarios/file_organizer.py \
+#   --skip-preflight \
+#   find-duplicates \
+#   --input "$DOWNLOADS" \
+#   --method hash \
+#   --min-size 1048576 \
+#   --output-json "/tmp/duplicates_$DATE.json"
+#
+# # Step 2: Organize by type
+# echo "📂 Organizing by type..."
+# python scripts/automation/scenarios/file_organizer.py \
+#   --skip-preflight \
+#   organize-by-type \
+#   --input "$DOWNLOADS" \
+#   --output "$ORGANIZED" \
+#   --move
+#
+# # Step 3: Analyze
+# echo "📊 Analyzing..."
+# python scripts/automation/scenarios/file_organizer.py \
+#   --skip-preflight \
+#   analyze-disk-space \
+#   --input "$ORGANIZED" \
+#   --depth 2
+#
+# echo "✅ Cleanup complete!"
+
+# ============================================================================
+# 進階範例：與其他工具整合
+# ============================================================================
+
+integration_with_image_processor:
+  description: "整合 File Organizer 和 Image Processor"
+
+  steps:
+    - name: "搜尋大型圖像"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          search \
+          --input /path/to/photos \
+          --extension .jpg \
+          --min-size 5242880 \
+          --output-list /tmp/large_images.txt
+
+    - name: "批次最佳化"
+      command: |
+        while read img; do
+          python scripts/automation/scenarios/image_processor.py \
+            --operation optimize \
+            --input "$img" \
+            --output "${img%.jpg}_optimized.jpg" \
+            --quality 85
+        done < /tmp/large_images.txt
+
+integration_with_video_processor:
+  description: "整合 File Organizer 和 Video Processor"
+
+  steps:
+    - name: "提取 frames"
+      command: |
+        python scripts/automation/scenarios/video_processor.py \
+          extract \
+          --input /path/to/video.mp4 \
+          --output /tmp/frames
+
+    - name: "按日期組織 frames"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-date \
+          --input /tmp/frames \
+          --output /path/to/organized_frames \
+          --date-format "%Y/%m/%d"
+
+# ============================================================================
+# 參數完整範例
+# ============================================================================
+
+complete_parameter_examples:
+
+  organize_by_type:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --dry-run \
+        --skip-preflight \
+        organize-by-type \
+        --input /path/to/input \
+        --output /path/to/output \
+        --no-subdirs \
+        --move
+
+  organize_by_date:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --dry-run \
+        --skip-preflight \
+        organize-by-date \
+        --input /path/to/input \
+        --output /path/to/output \
+        --date-format "%Y/%m/%d" \
+        --use-created-date \
+        --move
+
+  batch_rename:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --dry-run \
+        --skip-preflight \
+        batch-rename \
+        --input /path/to/files \
+        --pattern "IMG_(\d+).jpg" \
+        --replacement "photo_\1.jpg" \
+        --use-regex \
+        --recursive
+
+  find_duplicates:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --skip-preflight \
+        find-duplicates \
+        --input /path/to/check \
+        --method hash \
+        --no-recursive \
+        --min-size 1048576 \
+        --output-json /path/to/report.json
+
+  analyze_disk_space:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --skip-preflight \
+        analyze-disk-space \
+        --input /path/to/analyze \
+        --depth 3 \
+        --top-n 50 \
+        --output-json /path/to/analysis.json
+
+  search:
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --skip-preflight \
+        search \
+        --input /path/to/search \
+        --name-pattern "*.jpg" \
+        --extension .jpg \
+        --min-size 1048576 \
+        --max-size 10485760 \
+        --modified-after 2024-01-01 \
+        --modified-before 2024-12-31 \
+        --no-recursive \
+        --output-list /path/to/results.txt
+
+# ============================================================================
+# Dry-run 測試範例
+# ============================================================================
+
+dry_run_testing:
+  description: "使用 dry-run 預覽操作"
+
+  steps:
+    - name: "預覽組織"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --dry-run \
+          --skip-preflight \
+          organize-by-type \
+          --input /path/to/test \
+          --output /path/to/output
+      note: "檢查輸出，確認無誤後移除 --dry-run"
+
+    - name: "實際執行"
+      command: |
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-type \
+          --input /path/to/test \
+          --output /path/to/output
+
+# ============================================================================
+# 最佳實踐
+# ============================================================================
+
+best_practices:
+
+  backup_first:
+    description: "永遠先備份"
+    command: |
+      cp -r /path/to/important /path/to/backup
+      # 或使用 rsync
+      rsync -av /path/to/important/ /path/to/backup/
+
+  test_small_batch:
+    description: "先測試小批次"
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        --dry-run \
+        --skip-preflight \
+        organize-by-type \
+        --input /path/to/test_folder \
+        --output /path/to/test_output
+
+  log_operations:
+    description: "記錄所有操作"
+    command: |
+      python scripts/automation/scenarios/file_organizer.py \
+        ... \
+        2>&1 | tee -a /var/log/file_organizer_$(date +%Y%m%d).log
+
+  incremental_processing:
+    description: "分批處理大量檔案"
+    command: |
+      find /huge/directory -maxdepth 1 -type d | while read subdir; do
+        python scripts/automation/scenarios/file_organizer.py \
+          --skip-preflight \
+          organize-by-type \
+          --input "$subdir" \
+          --output /organized
+      done
+
+# ============================================================================
+# 自動化排程範例
+# ============================================================================
+
+# Cron 範例（Linux/Mac）
+#
+# # 每天凌晨 2 點執行清理
+# 0 2 * * * /path/to/cleanup_script.sh
+#
+# # 每週日凌晨 3 點執行維護
+# 0 3 * * 0 /path/to/weekly_maintenance.sh
+#
+# # 每月 1 號執行歸檔
+# 0 4 1 * * /path/to/monthly_archive.sh
+
+# Windows Task Scheduler 範例
+#
+# schtasks /create /sc daily /tn "Daily Cleanup" /tr "C:\path\to\cleanup_script.bat" /st 02:00
+
+# ============================================================================
+# 進階應用範例
+# ============================================================================
+
+advanced_use_cases:
+
+  media_library_organization:
+    description: "完整媒體庫組織"
+    steps:
+      - "按類型分類（影片/音訊/圖像）"
+      - "按日期組織每個類別"
+      - "尋找並移除重複"
+      - "生成索引報告"
+
+  project_workspace_cleanup:
+    description: "專案工作區清理"
+    steps:
+      - "搜尋臨時檔案"
+      - "移除編譯產物"
+      - "組織原始檔案"
+      - "歸檔舊版本"
+
+  backup_verification:
+    description: "備份驗證"
+    steps:
+      - "比較原始和備份目錄"
+      - "尋找遺漏檔案"
+      - "驗證檔案完整性（hash）"
+      - "生成差異報告"
+
+# ============================================================================
+# 效能調校
+# ============================================================================
+
+performance_tuning:
+
+  large_file_processing:
+    description: "處理大量檔案"
+    recommendations:
+      - "使用 --no-recursive 分層處理"
+      - "限制 --depth 減少掃描深度"
+      - "先用 --method size 快速篩選"
+      - "分批處理而非一次全部"
+
+  memory_optimization:
+    description: "記憶體最佳化"
+    recommendations:
+      - "處理大檔案時降低並行度"
+      - "避免同時運行多個實例"
+      - "定期清理臨時檔案"
+
+  network_drives:
+    description: "網路磁碟處理"
+    recommendations:
+      - "避免跨網路複製/移動"
+      - "先同步到本機再處理"
+      - "使用 rsync 替代直接操作"
+
+# ============================================================================
+# 錯誤處理
+# ============================================================================
+
+error_handling:
+
+  permission_errors:
+    solution: |
+      # 檢查權限
+      ls -la /path/to/file
+      # 修復權限
+      chmod +r /path/to/file
+
+  file_locks:
+    solution: |
+      # 檢查檔案是否被鎖定
+      lsof /path/to/file
+      # 等待釋放或強制關閉程序
+
+  disk_full:
+    solution: |
+      # 檢查磁碟空間
+      df -h
+      # 清理空間
+      python scripts/automation/scenarios/file_organizer.py \
+        analyze-disk-space \
+        --input /path \
+        --output-json /tmp/analysis.json
+
+# ============================================================================
+# 結尾說明
+# ============================================================================
+
+notes:
+  - "File Organizer 主要透過 CLI 使用"
+  - "使用 shell script 組合複雜工作流程"
+  - "永遠先備份重要資料"
+  - "使用 --dry-run 預覽結果"
+  - "記錄所有操作以便追蹤"
+  - "定期執行維護任務"
+  - "整合其他 Phase 2 工具實現完整自動化"

@@ -1,0 +1,105 @@
+# Dataset Builder - K-fold 交叉驗證配置
+# 適用於模型評估和超參數調優
+
+# 專案資訊
+project:
+  name: "K-Fold Cross-Validation Dataset"
+  description: "5-fold cross-validation for model selection"
+  version: "1.0.0"
+
+# 資料集創建設定
+creation:
+  # 輸入影像目錄
+  input_dir: /data/raw_images
+
+  # 輸出資料集目錄
+  output_dir: /data/datasets/kfold_experiment
+
+  # 格式設定
+  format: imagefolder
+  recursive: true
+
+  # 每個類別的最小影像數量
+  min_images_per_class: 10
+
+# K-fold 設定
+kfold:
+  # 啟用 K-fold 交叉驗證
+  enabled: true
+
+  # Fold 數量（建議 5 或 10）
+  n_folds: 5
+
+  # 是否使用分層分割（保持各 fold 中類別比例一致）
+  stratify: true
+
+  # 隨機種子
+  seed: 42
+
+  # 是否打亂資料
+  shuffle: true
+
+# 驗證設定
+validation:
+  # 深度檢查每張影像
+  check_images: true
+
+  # 最小解析度要求
+  min_width: 224
+  min_height: 224
+
+  # 允許的格式
+  allowed_formats:
+    - jpg
+    - jpeg
+    - png
+
+# 元數據設定
+metadata:
+  # 生成統計資訊（每個 fold 的統計）
+  generate_statistics: true
+
+  # 生成摘要報告
+  generate_summary: true
+
+  # 計算資料集均值和標準差
+  compute_mean_std: true
+
+  # 為每個 fold 生成報告
+  per_fold_reports: true
+
+# 性能設定
+performance:
+  # 批次大小
+  batch_size: 64
+
+  # 工作執行緒數
+  num_workers: 8
+
+  # 記憶體限制（GB）
+  memory_limit_gb: 16
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/kfold_dataset_builder.log
+  console: true
+
+# 輸出結構說明
+# output_dir/
+#   ├── fold_1/
+#   │   ├── train/
+#   │   │   ├── class_a/
+#   │   │   └── ...
+#   │   └── val/
+#   │       ├── class_a/
+#   │       └── ...
+#   ├── fold_2/
+#   │   ├── train/
+#   │   └── val/
+#   ├── ...
+#   ├── fold_5/
+#   │   ├── train/
+#   │   └── val/
+#   ├── kfold_metadata.json
+#   └── kfold_statistics.json

@@ -1,0 +1,87 @@
+# COCO to YOLO Format Conversion Configuration
+# 將 COCO 格式標註轉換為 YOLO 格式
+
+# 專案資訊
+project:
+  name: "COCO to YOLO Conversion"
+  description: "Convert COCO format annotations to YOLO format for object detection training"
+  version: "1.0.0"
+
+# 轉換設定
+conversion:
+  # 輸入格式: coco, yolo, voc
+  input_format: coco
+
+  # 輸出格式: coco, yolo, voc
+  output_format: yolo
+
+  # COCO 註解檔案路徑
+  input_file: /path/to/annotations.json
+
+  # 輸出目錄（YOLO 格式會創建 labels/ 子目錄）
+  output_dir: /path/to/output/yolo
+
+  # 影像目錄（用於驗證影像尺寸）
+  images_dir: /path/to/images
+
+  # YOLO 類別檔案輸出路徑
+  classes_file: /path/to/output/yolo/classes.txt
+
+# 驗證設定
+validation:
+  # 是否驗證邊界框有效性
+  validate_bbox: true
+
+  # 是否檢查影像檔案存在
+  check_image_files: true
+
+  # 是否驗證類別一致性
+  validate_categories: true
+
+  # 最小邊界框尺寸（像素）
+  min_bbox_size: 1
+
+  # 最大邊界框面積比例（相對於影像面積）
+  max_bbox_ratio: 1.0
+
+# 過濾設定
+filtering:
+  # 是否過濾無效標註
+  filter_invalid: true
+
+  # 是否過濾太小的邊界框
+  filter_small_bbox: true
+
+  # 最小邊界框面積（像素）
+  min_bbox_area: 100
+
+  # 是否過濾 iscrowd 標註
+  filter_crowd: false
+
+# 處理設定
+processing:
+  # 是否標準化座標（YOLO 格式自動標準化）
+  normalize_coordinates: true
+
+  # 座標精度（小數位數）
+  coordinate_precision: 6
+
+  # 是否保留分割多邊形（YOLO 不支援，會被忽略）
+  keep_segmentation: false
+
+# 日誌設定
+logging:
+  level: INFO
+  file: logs/annotation_tool_coco_to_yolo.log
+  console: true
+
+# 輸出設定
+output:
+  # 是否生成統計報告
+  generate_report: true
+
+  # 報告檔案路徑
+  report_file: /path/to/output/yolo/conversion_report.json
+
+  # 是否創建視覺化預覽（暫不支援）
+  create_visualization: false

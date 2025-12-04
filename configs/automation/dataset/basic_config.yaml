@@ -1,0 +1,78 @@
+# Dataset Builder - 基本配置範例
+# 適用於標準的影像分類資料集創建
+
+# 資料集創建設定
+creation:
+  # 輸入影像目錄（ImageFolder 格式：每個子目錄為一個類別）
+  input_dir: /data/raw_images
+
+  # 輸出資料集目錄
+  output_dir: /data/datasets/my_dataset
+
+  # 資料集格式：imagefolder（標準格式）或 flat（扁平結構，無類別）
+  format: imagefolder
+
+  # 是否遞迴掃描子目錄
+  recursive: true
+
+  # 每個類別的最小影像數量（過濾掉樣本數不足的類別）
+  min_images_per_class: 5
+
+# 分割設定
+split:
+  # 是否啟用資料集分割
+  enabled: true
+
+  # 分割比例：[train, val, test]
+  # 範例：[0.7, 0.2, 0.1] 表示 70% 訓練、20% 驗證、10% 測試
+  ratio: [0.7, 0.2, 0.1]
+
+  # 是否使用分層分割（保持各類別比例）
+  # 建議：類別不平衡時啟用
+  stratify: true
+
+  # 隨機種子（確保結果可重現）
+  seed: 42
+
+# 驗證設定
+validation:
+  # 是否深度檢查每張影像（檢查可讀性）
+  check_images: true
+
+  # 最小影像尺寸要求（像素）
+  min_width: 256
+  min_height: 256
+
+  # 最大影像尺寸限制（像素）
+  max_width: 2048
+  max_height: 2048
+
+  # 允許的影像格式
+  allowed_formats:
+    - jpg
+    - jpeg
+    - png
+    - webp
+
+# 處理設定
+processing:
+  # 批次大小（影響記憶體使用）
+  batch_size: 32
+
+  # 工作執行緒數量（並行處理）
+  # 建議：設為 CPU 核心數
+  num_workers: 4
+
+  # 記憶體限制（GB）
+  memory_limit_gb: 8
+
+# 日誌設定
+logging:
+  # 日誌等級：DEBUG, INFO, WARNING, ERROR
+  level: INFO
+
+  # 日誌檔案路徑（可選）
+  file: logs/dataset_builder.log
+
+  # 是否輸出到控制台
+  console: true

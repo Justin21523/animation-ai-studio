@@ -1,0 +1,105 @@
+# Dataset Builder - 快速原型配置
+# 適用於快速實驗和演算法原型測試
+
+# 專案資訊
+project:
+  name: "Quick Prototype Dataset"
+  description: "Small subset for rapid prototyping and algorithm testing"
+  version: "1.0.0"
+
+# 資料集創建設定
+creation:
+  # 完整資料集路徑（作為來源）
+  source_dataset: /data/datasets/full_dataset
+
+  # 輸出小型子集目錄
+  output_dir: /data/experiments/prototype_subset
+
+  # 格式設定
+  format: imagefolder
+
+# 子集提取設定
+subset:
+  # 啟用子集提取
+  enabled: true
+
+  # 採樣策略：random（隨機）, stratified（分層）, balanced（平衡）
+  strategy: stratified
+
+  # 每類最大樣本數（小型子集）
+  max_samples_per_class: 50
+
+  # 每類最小樣本數
+  min_samples_per_class: 10
+
+  # 或使用採樣比例（與 max_samples 二選一）
+  # sample_ratio: 0.05  # 5% 的資料
+
+  # 隨機種子
+  seed: 42
+
+# 分割設定（原型通常只需要 train/val）
+split:
+  # 啟用分割
+  enabled: true
+
+  # 簡化的分割比例（train/val）
+  ratio: [0.8, 0.2]
+
+  # 使用分層分割
+  stratify: true
+
+  # 隨機種子
+  seed: 42
+
+# 驗證設定（輕量級驗證）
+validation:
+  # 基本檢查（不深度驗證以節省時間）
+  check_images: false
+
+  # 最小解析度要求（較寬鬆）
+  min_width: 128
+  min_height: 128
+
+# 元數據設定（簡化）
+metadata:
+  # 生成基本統計
+  generate_statistics: true
+
+  # 生成簡短摘要
+  generate_summary: true
+
+  # 不計算均值和標準差（節省時間）
+  compute_mean_std: false
+
+# 性能設定（優化速度）
+performance:
+  # 小批次大小（快速處理）
+  batch_size: 32
+
+  # 較少的工作執行緒（避免系統負載過高）
+  num_workers: 4
+
+  # 較小的記憶體限制
+  memory_limit_gb: 4
+
+# 日誌設定（簡化）
+logging:
+  level: INFO
+  console: true
+  # 不輸出到檔案（減少 I/O）
+  file: null
+
+# 使用說明
+# ===========
+# 此配置用於快速創建小型資料集子集，適合：
+# - 演算法原型測試
+# - 超參數初步探索
+# - 快速實驗迭代
+#
+# 典型使用時間：< 1 分鐘
+#
+# 使用方法：
+# python scripts/automation/scenarios/dataset_builder.py extract-subset \
+#   --config configs/automation/dataset/quick_prototype_config.yaml \
+#   --skip-preflight

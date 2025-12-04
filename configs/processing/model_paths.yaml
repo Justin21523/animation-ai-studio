@@ -1,0 +1,98 @@
+# Model Path Mapping Configuration for animation-ai-studio
+# Defines paths for models used by LoRA pipeline components
+
+# Segmentation Models
+segmentation:
+  sam2:
+    checkpoint: /mnt/c/ai_models/segmentation/sam2/sam2_hiera_large.pt
+    model_cfg: hiera_l
+    device: cuda
+
+  yolov8:
+    checkpoint: /mnt/c/ai_models/segmentation/yolov8/yolov8x-seg.pt
+    device: cuda
+
+  isnet:
+    checkpoint: /mnt/c/ai_models/segmentation/isnet/isnet-general-use.pth
+    device: cuda
+
+# Vision Embedding Models (for clustering)
+embeddings:
+  clip:
+    model: ViT-L/14  # OpenAI CLIP model ID
+    device: cuda
+
+  siglip:
+    model: google/siglip-so400m-patch14-384
+    device: cuda
+
+  dinov2:
+    model: facebook/dinov2-giant
+    device: cuda
+
+  internvl2:
+    model: OpenGVLab/InternVL2-8B
+    vision_only: true  # Only use vision encoder for embeddings
+    device: cuda
+
+# Face Recognition Models
+face:
+  arcface:
+    checkpoint: /mnt/c/ai_models/face_recognition/arcface/arcface_r100.pth
+    device: cuda
+
+  retinaface:
+    checkpoint: /mnt/c/ai_models/face_detection/retinaface/Resnet50_Final.pth
+    device: cuda
+
+# Pose Estimation Models
+pose:
+  rtmpose:
+    checkpoint: /mnt/c/ai_models/pose_estimation/rtmpose/rtmpose-m_simcc-body7_pt-body7_420e-256x192.pth
+    device: cuda
+
+  mediapipe:
+    model: mediapipe_pose  # Uses MediaPipe's built-in model
+    device: cpu  # MediaPipe works on CPU
+
+# Image Generation Models
+generation:
+  sdxl_base:
+    checkpoint: /mnt/c/ai_models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors
+    device: cuda
+
+  sdxl_refiner:
+    checkpoint: /mnt/c/ai_models/stable-diffusion/checkpoints/sd_xl_refiner_1.0.safetensors
+    device: cuda
+
+# LoRA Models Directory
+lora:
+  identity_loras_dir: /mnt/c/ai_models/lora_sdxl/BEST_CHECKPOINTS_COLLECTION
+  training_output_dir: /mnt/c/ai_models/lora_sdxl
+
+# Inpainting Models
+inpainting:
+  lama:
+    checkpoint: /mnt/c/ai_models/inpainting/lama/big-lama.ckpt
+    device: cuda
+
+# VLM Models (for captioning)
+vlm:
+  qwen2_vl:
+    model: Qwen/Qwen2-VL-7B-Instruct
+    device: cuda
+
+  internvl2:
+    model: OpenGVLab/InternVL2-8B
+    device: cuda
+
+  claude:
+    api_key_env: ANTHROPIC_API_KEY  # Read from environment variable
+    model: claude-3-5-sonnet-20241022
+
+# Data Paths (from global config)
+data:
+  films_root: /mnt/data/ai_data/datasets/3d-anime
+  training_data_root: /mnt/data/ai_data/training_data
+  output_root: /mnt/data/ai_data/outputs
+  checkpoints_root: /mnt/data/ai_data/checkpoints

@@ -1,0 +1,126 @@
+# Model Storage Specification
+#
+# This file defines where different types of models should be stored
+# according to data_model_structure.md specification.
+#
+# Author: Animation AI Studio Team
+# Last Modified: 2025-12-02
+
+# ============================================================================
+# Model Storage Root Paths (DO NOT CHANGE)
+# ============================================================================
+
+models_root: /mnt/c/ai_models
+cache_root: /mnt/c/ai_cache
+
+# ============================================================================
+# Model Type Storage Locations
+# ============================================================================
+
+# Video/Audio Models
+video:
+  whisper: /mnt/c/ai_models/video/whisper        # Whisper ASR models
+  wav2vec: /mnt/c/ai_models/video/wav2vec        # Wav2Vec models
+  rife: /mnt/c/ai_models/video/rife              # Frame interpolation
+  flownet: /mnt/c/ai_models/flow                 # Optical flow
+
+# Vision Models
+vision:
+  clip: /mnt/c/ai_models/clip                    # CLIP embeddings
+  siglip: /mnt/c/ai_models/embeddings/siglip     # SigLIP
+  internvl: /mnt/c/ai_models/llm/internvl        # InternVL vision-language
+
+# Detection Models
+detection:
+  yolo: /mnt/c/ai_models/detection/yolo          # YOLO series
+  retinaface: /mnt/c/ai_models/detection/face    # Face detection
+  rtmpose: /mnt/c/ai_models/detection/pose       # Pose detection
+
+# Segmentation Models
+segmentation:
+  sam2: /mnt/c/ai_models/segmentation/sam2       # SAM2
+  u2net: /mnt/c/ai_models/segmentation/u2net     # U^2-Net
+  isnet: /mnt/c/ai_models/segmentation/isnet     # ISNet
+  rembg: /mnt/c/ai_models/segmentation/rembg     # rembg models
+
+# Inpainting Models
+inpainting:
+  lama: /mnt/c/ai_models/inpainting/lama         # LaMa
+  powerpaint: /mnt/c/ai_models/inpainting/powerpaint  # PowerPaint
+
+# Enhancement Models
+enhancement:
+  realesrgan: /mnt/c/ai_models/enhancement/realesrgan   # RealESRGAN
+  codeformer: /mnt/c/ai_models/enhancement/codeformer   # CodeFormer
+  gfpgan: /mnt/c/ai_models/enhancement/gfpgan           # GFPGAN
+
+# Stable Diffusion Models
+stable_diffusion:
+  base: /mnt/c/ai_models/stable-diffusion/checkpoints   # Base models
+  vae: /mnt/c/ai_models/stable-diffusion/vae            # VAE models
+  lora_sd15: /mnt/c/ai_models/lora                      # SD1.5 LoRAs
+  lora_sdxl: /mnt/c/ai_models/lora_sdxl                 # SDXL LoRAs
+  controlnet: /mnt/c/ai_models/controlnet               # ControlNet
+
+# LLM Models
+llm:
+  qwen: /mnt/c/ai_models/llm/qwen                # Qwen series
+  llama: /mnt/c/ai_models/llm/llama              # LLaMA series
+  claude: /mnt/c/ai_models/llm/claude            # Claude (if any local)
+
+# Text Embeddings
+embeddings:
+  sentence_transformers: /mnt/c/ai_models/embeddings/sentence-transformers
+  bge: /mnt/c/ai_models/embeddings/bge           # BGE embeddings
+  e5: /mnt/c/ai_models/embeddings/e5             # E5 embeddings
+
+# Reranker Models
+reranker:
+  bge_reranker: /mnt/c/ai_models/reranker/bge    # BGE reranker
+
+# Safety Models
+safety:
+  nsfw_detector: /mnt/c/ai_models/safety/nsfw    # NSFW detection
+
+# ============================================================================
+# Cache Locations (DO NOT STORE MODELS HERE)
+# ============================================================================
+
+cache:
+  huggingface: /mnt/c/ai_cache/huggingface       # HF cache
+  torch: /mnt/c/ai_cache/torch                   # Torch cache
+  pip: /mnt/c/ai_cache/pip                       # Pip cache
+  temp: /mnt/c/tmp                               # Temporary files
+
+# ============================================================================
+# Environment Variables Required
+# ============================================================================
+
+env_vars:
+  HF_HOME: /mnt/c/ai_cache/huggingface
+  TRANSFORMERS_CACHE: /mnt/c/ai_cache/huggingface
+  TORCH_HOME: /mnt/c/ai_cache/torch
+  XDG_CACHE_HOME: /mnt/c/ai_cache
+
+# ============================================================================
+# Migration Rules
+# ============================================================================
+
+# If models are found in the wrong location, they should be:
+# 1. Moved to the correct location (mv)
+# 2. Symlinked from old location to new location (ln -s)
+# 3. Logged for audit purposes
+
+migration:
+  strategy: move_and_symlink
+  audit_log: /mnt/data/training/logs/model_migrations.log
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+# - ALL model weights must go under /mnt/c/ai_models
+# - ALL temporary caches must go under /mnt/c/ai_cache
+# - NEVER store models under $HOME or /
+# - Always use absolute paths when configuring model downloads
+# - When in doubt, check data_model_structure.md

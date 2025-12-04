@@ -3,7 +3,7 @@
 
 # Model paths (AI Warehouse)
 model:
-  base_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/stable-diffusion-xl-base-1.0"
+  base_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors"
   refiner_model: null  # Optional refiner (requires additional VRAM)
   variant: "fp16"  # fp16 for VRAM efficiency
 

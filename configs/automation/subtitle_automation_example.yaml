@@ -1,0 +1,267 @@
+# Subtitle Automation Batch Configuration Example
+#
+# This demonstrates batch subtitle processing operations including
+# transcription (ASR) and translation.
+#
+# Usage:
+#   export ANTHROPIC_API_KEY="sk-ant-..."  # For translation
+#   python scripts/automation/scenarios/subtitle_automation.py \
+#     --operation batch \
+#     --batch-config configs/automation/subtitle_automation_example.yaml
+#
+# Author: Animation AI Studio Team
+# Last Modified: 2025-12-02
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+
+# ASR (Automatic Speech Recognition) Settings
+asr:
+  engine: whisper-cpu  # whisper-cpu (local) or openai-api (cloud)
+  model: large         # tiny/base/small/medium/large (for whisper-cpu)
+  language: en         # ISO 639-1 code or null for auto-detect
+
+# Translation Settings
+translation:
+  enabled: true        # Enable translation operations
+  translator: claude   # claude or gpt
+  source_lang: en      # Source language
+  target_languages:    # List of target languages
+    - zh               # Chinese
+    - ja               # Japanese
+    - ko               # Korean
+  batch_size: 20       # Segments per batch (for rate limiting)
+
+# ============================================================================
+# Batch Operations
+# ============================================================================
+
+operations:
+  # ----------------------------------------------------------------------------
+  # Example 1: Transcribe video to English subtitles
+  # ----------------------------------------------------------------------------
+  - operation: transcribe
+    input: /mnt/data/datasets/general/luca/raw_videos/luca_film.ts
+    output: /tmp/subtitle_automation_test/luca_en.srt
+    asr_engine: whisper-cpu
+    whisper_model: large
+    language: en
+
+  # ----------------------------------------------------------------------------
+  # Example 2: Translate English subtitles to Chinese
+  # ----------------------------------------------------------------------------
+  - operation: translate
+    input: /tmp/subtitle_automation_test/luca_en.srt
+    output: /tmp/subtitle_automation_test/luca_zh.srt
+    translator: claude
+    source_lang: en
+    target_lang: zh
+    batch_size: 20
+
+  # ----------------------------------------------------------------------------
+  # Example 3: Translate English subtitles to Japanese
+  # ----------------------------------------------------------------------------
+  - operation: translate
+    input: /tmp/subtitle_automation_test/luca_en.srt
+    output: /tmp/subtitle_automation_test/luca_ja.srt
+    translator: claude
+    source_lang: en
+    target_lang: ja
+    batch_size: 20
+
+  # ----------------------------------------------------------------------------
+  # Example 4: Translate English subtitles to Korean
+  # ----------------------------------------------------------------------------
+  - operation: translate
+    input: /tmp/subtitle_automation_test/luca_en.srt
+    output: /tmp/subtitle_automation_test/luca_ko.srt
+    translator: claude
+    source_lang: en
+    target_lang: ko
+    batch_size: 20
+
+  # ----------------------------------------------------------------------------
+  # Example 5: Transcribe another video with auto language detection
+  # ----------------------------------------------------------------------------
+  - operation: transcribe
+    input: /path/to/another_video.mp4
+    output: /tmp/subtitle_automation_test/video2_auto.srt
+    asr_engine: whisper-cpu
+    whisper_model: medium
+    # No language specified = auto-detect
+
+  # ----------------------------------------------------------------------------
+  # Example 6: Use OpenAI Whisper API (requires OPENAI_API_KEY)
+  # ----------------------------------------------------------------------------
+  - operation: transcribe
+    input: /path/to/video3.mp4
+    output: /tmp/subtitle_automation_test/video3_en.srt
+    asr_engine: openai-api
+    language: en
+
+# ============================================================================
+# Workflow Examples
+# ============================================================================
+
+# Workflow 1: Complete Multilingual Pipeline
+# ------------------------------------------
+# 1. Transcribe video to English (large model for best quality)
+# 2. Translate to Chinese, Japanese, Korean
+#
+# This creates:
+#   - video_en.srt (English transcription)
+#   - video_zh.srt (Chinese translation)
+#   - video_ja.srt (Japanese translation)
+#   - video_ko.srt (Korean translation)
+
+# Workflow 2: Fast Draft Workflow
+# -------------------------------
+# 1. Transcribe with tiny model (10x faster, lower quality)
+# 2. Review and correct manually
+# 3. Translate corrected subtitles
+#
+# Good for: Quick drafts, testing, iteration
+
+# Workflow 3: High-Quality Production Workflow
+# --------------------------------------------
+# 1. Transcribe with large model (best quality)
+# 2. Review for accuracy (character names, technical terms)
+# 3. Translate with Claude API (context-aware, high quality)
+# 4. Review translations for cultural appropriateness
+#
+# Good for: Final production, public distribution
+
+# ============================================================================
+# Model Selection Guide
+# ============================================================================
+
+# Whisper Model Comparison:
+# -------------------------
+# tiny   (73MB)   - 10x faster, fair quality     - Use for: drafts, testing
+# base   (142MB)  - 7x faster, good quality      - Use for: balanced workflows
+# small  (466MB)  - 4x faster, better quality    - Use for: general use
+# medium (1.5GB)  - 2x faster, very good quality - Use for: high quality
+# large  (2.9GB)  - 1x speed, best quality       - Use for: production
+#
+# Performance estimates (32-thread CPU):
+# - 1-hour video with large model: ~60 minutes
+# - 1-hour video with medium model: ~30 minutes
+# - 1-hour video with tiny model: ~6 minutes
+
+# Translation Service Comparison:
+# -------------------------------
+# Claude API:
+#   - Excellent context preservation
+#   - Natural dialogue translation
+#   - Good for: narrative content, character dialogue
+#   - Speed: ~5s per 20 segments
+#
+# GPT API:
+#   - Excellent technical accuracy
+#   - Consistent terminology
+#   - Good for: technical content, documentation
+#   - Speed: ~3s per 20 segments
+
+# ============================================================================
+# Language Codes (ISO 639-1)
+# ============================================================================
+
+# Common languages:
+# en - English
+# zh - Chinese (Simplified)
+# ja - Japanese
+# ko - Korean
+# es - Spanish
+# fr - French
+# de - German
+# it - Italian
+# pt - Portuguese
+# ru - Russian
+# ar - Arabic
+# hi - Hindi
+# th - Thai
+# vi - Vietnamese
+
+# ============================================================================
+# Output Format Notes
+# ============================================================================
+
+# SRT Format (.srt):
+# - Most widely compatible
+# - Supported by YouTube, VLC, most players
+# - Simple text format
+#
+# VTT Format (.vtt):
+# - Web-optimized (HTML5 video)
+# - Supports advanced styling
+# - Good for web embedding
+#
+# Both formats preserve:
+# - Timing information (start/end timestamps)
+# - Text content
+# - Segment ordering
+
+# ============================================================================
+# Best Practices
+# ============================================================================
+
+# 1. Model Selection:
+#    - Use large model for final production
+#    - Use medium model for balanced quality/speed
+#    - Use tiny model for quick testing only
+
+# 2. Language Detection:
+#    - Specify language if known (--language en)
+#    - Use auto-detect for multilingual content
+#    - Review auto-detected language for accuracy
+
+# 3. Translation Workflow:
+#    - Transcribe once, translate to multiple languages
+#    - Review English transcription before translating
+#    - Test translations with native speakers
+
+# 4. Batch Processing:
+#    - Process multiple videos overnight
+#    - Use tmux/screen for long-running jobs
+#    - Monitor memory usage during large batches
+
+# 5. API Usage:
+#    - Set appropriate batch size (20 is good default)
+#    - Monitor API costs for large batches
+#    - Use rate limiting to avoid API errors
+
+# 6. Quality Control:
+#    - Always review automated transcriptions
+#    - Verify character names and technical terms
+#    - Test subtitles with actual video playback
+
+# ============================================================================
+# Troubleshooting
+# ============================================================================
+
+# Issue: Poor transcription quality
+# Solution: Use larger model (tiny → medium → large)
+
+# Issue: Wrong character names
+# Solution: Use large model, or manually correct after transcription
+
+# Issue: Translation API errors
+# Solution: Check API key, reduce batch size, add delays
+
+# Issue: Memory warnings
+# Solution: Use smaller model, process shorter segments
+
+# Issue: Slow processing
+# Solution: Use smaller model, or use OpenAI API for cloud processing
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+# - All Whisper models stored at: /mnt/c/ai_models/video/whisper/
+# - Models auto-download on first use
+# - Large model is 2.9GB (ensure sufficient disk space)
+# - Translation requires API keys (ANTHROPIC_API_KEY or OPENAI_API_KEY)
+# - CPU-only processing (32 threads utilized)
+# - Integrated with Phase 1 safety infrastructure
