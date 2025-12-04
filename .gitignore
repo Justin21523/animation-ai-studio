@@ -51,6 +51,10 @@ processed/
 # Data (NOT tracked - too large)
 data/raw/
 data/processed/
+data/films/*/voice_samples*/
+data/films/*/audio/
+data/films/*/frames/
+data/prompts/
 /models/
 *.safetensors
 *.ckpt
