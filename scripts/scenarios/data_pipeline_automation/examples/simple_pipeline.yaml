@@ -1,0 +1,56 @@
+# Simple Data Pipeline Example
+#
+# This demonstrates a basic pipeline with dependency chain:
+# extract_frames -> segment -> cluster -> prepare_data
+
+name: simple_character_pipeline
+version: 1.0.0
+
+stages:
+  # Stage 1: Extract frames from video
+  - id: extract_frames
+    type: frame_extraction
+    depends_on: []
+    config:
+      input_video: /path/to/video.mp4
+      output_dir: /path/to/output/frames
+      mode: scene
+      scene_threshold: 0.3
+      quality: high
+
+  # Stage 2: Segment characters (depends on frame extraction)
+  - id: segment_characters
+    type: segmentation
+    depends_on:
+      - extract_frames
+    config:
+      input_dir: "{extract_frames.output_dir}"
+      output_dir: /path/to/output/segmented
+      model: isnet
+      alpha_threshold: 0.15
+      blur_threshold: 80
+      extract_characters: true
+
+  # Stage 3: Cluster by identity (depends on segmentation)
+  - id: cluster_identities
+    type: clustering
+    depends_on:
+      - segment_characters
+    config:
+      input_dir: "{segment_characters.character_dir}"
+      output_dir: /path/to/output/clustered
+      min_cluster_size: 12
+      min_samples: 2
+      use_face_detection: true
+
+  # Stage 4: Prepare training data (depends on clustering)
+  - id: prepare_training
+    type: training_data_prep
+    depends_on:
+      - cluster_identities
+    config:
+      character_dirs: "{cluster_identities.cluster_dirs}"
+      output_dir: /path/to/output/training_data
+      generate_captions: true
+      caption_prefix: "a 3d animated character, pixar style"
+      target_size: 400

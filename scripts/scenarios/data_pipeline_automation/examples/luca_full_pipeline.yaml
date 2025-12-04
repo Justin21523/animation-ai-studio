@@ -1,0 +1,150 @@
+# Luca Complete Processing Pipeline
+#
+# Full end-to-end pipeline for preparing Luca training data:
+#   1. Frame Extraction: Extract frames from video using scene detection
+#   2. Character Segmentation: Use SAM2 to segment character instances
+#   3. Character Clustering: Cluster instances by identity using CLIP
+#   4. Training Data Prep: Organize and filter for LoRA training
+#
+# Usage:
+#   python -m scripts.scenarios.data_pipeline_automation run \
+#     --config scripts/scenarios/data_pipeline_automation/examples/luca_full_pipeline.yaml \
+#     --max-parallel 2
+#
+# Author: Animation AI Studio
+# Date: 2025-12-04
+
+name: "Luca Complete Processing"
+version: "1.0.0"
+
+# Orchestrator configuration
+orchestrator:
+  checkpoint_dir: "/mnt/data/ai_data/checkpoints/luca_pipeline"
+  log_dir: "/mnt/data/ai_data/logs/luca_pipeline"
+  enable_parallel_execution: true
+  max_parallel_stages: 2  # GPU stages should run sequentially
+  checkpoint_interval: 300  # Save checkpoint every 5 minutes
+  enable_auto_retry: true
+  max_retries: 2
+  event_bus_enabled: true
+
+# Pipeline stages
+stages:
+  # Stage 1: Extract frames from video
+  - id: extract_frames
+    type: frame_extraction
+    config:
+      # Input: Raw Luca video files
+      input_dir: "/mnt/c/raw_videos/luca"
+
+      # Output: Extracted frames
+      output_dir: "/mnt/data/ai_data/datasets/3d-anime/luca/frames"
+
+      # Extraction strategy
+      mode: scene  # scene | interval | hybrid
+      scene_threshold: 27.0  # Lower = more sensitive (more scenes detected)
+      frames_per_scene: 3  # Extract 3 frames from each scene
+      skip_scene_boundaries: true  # Skip first/last 10% of scene (transitions)
+
+      # Quality settings
+      jpeg_quality: 95  # High quality frames
+      workers: 8  # Parallel video processing (use 8 CPU cores)
+
+      # Episode handling
+      episode_pattern: "(\d+)"  # Extract episode number from filename
+
+  # Stage 2: Segment character instances using SAM2
+  - id: segment_characters
+    type: segmentation
+    depends_on: [extract_frames]  # Wait for frame extraction
+    config:
+      # Input: Frames from previous stage (using template syntax)
+      input_dir: "{extract_frames.output_dir}"
+
+      # Output: Character instances
+      output_dir: "/mnt/data/ai_data/datasets/3d-anime/luca/instances"
+
+      # SAM2 model configuration
+      model: sam2_hiera_base  # Balanced quality/VRAM (~6GB)
+      # Options: sam2_hiera_large (best quality, 7GB)
+      #          sam2_hiera_base (balanced, 6GB) [RECOMMENDED]
+      #          sam2_hiera_small (faster, 4GB)
+      #          sam2_hiera_tiny (fastest, 3GB)
+
+      device: cuda  # Use GPU for SAM2
+
+      # Instance filtering
+      min_size: 16384  # Minimum instance area (128x128 pixels)
+
+      # Output modes
+      context_mode: all  # Generate: transparent, context, blurred versions
+      context_padding: 20  # Padding around bbox for context versions
+      save_masks: false  # Don't save individual masks (saves disk space)
+      save_backgrounds: false  # Don't save backgrounds
+      visualize: false  # Don't save visualizations
+
+  # Stage 3: Cluster character instances by identity
+  - id: cluster_characters
+    type: clustering
+    depends_on: [segment_characters]  # Wait for segmentation
+    config:
+      # Input: Character instances from previous stage
+      instances_dir: "{segment_characters.character_dir}"
+
+      # Output: Clustered characters
+      output_dir: "/mnt/data/ai_data/datasets/3d-anime/luca/clustered"
+
+      # Clustering method
+      method: kmeans  # kmeans | hdbscan
+      # K-means: 100% coverage, auto k detection
+      # HDBSCAN: Density-based, may produce noise cluster
+
+      # K-means parameters
+      k_range: [10, 50]  # Auto-detect k between 10-50 characters
+      # fixed_k: 12  # Uncomment to manually specify k (overrides auto-detection)
+
+      # CLIP embedding settings
+      batch_size: 64  # CLIP batch size
+      device: cuda  # Use GPU for CLIP encoding
+
+  # Stage 4: Prepare LoRA training data
+  - id: prepare_training
+    type: training_data_prep
+    depends_on: [cluster_characters]  # Wait for clustering
+    config:
+      # Input: Cluster directories from previous stage
+      cluster_dirs: "{cluster_characters.cluster_dirs}"
+
+      # Output: LoRA training dataset
+      output_dir: "/mnt/data/ai_data/datasets/3d-anime/luca/training_data"
+
+      # Image processing settings
+      target_size: 512  # Resize to 512x512 for SDXL training
+      min_image_size: 256  # Filter out images smaller than 256px
+      blur_threshold: 100.0  # Blur detection (lower = stricter)
+      max_images_per_char: 200  # Limit dataset size per character
+
+      # Output settings
+      jpeg_quality: 95  # High quality training images
+      generate_captions: false  # Don't generate captions (use tag-based instead)
+      # caption_template: "luca, boy, pixar style"  # Uncomment to enable captions
+
+# Expected outputs:
+# - frames/: ~5,000-10,000 frames (depending on video length)
+# - instances/: ~15,000-30,000 character instances
+# - clustered/cluster_*/: ~10-20 character clusters
+# - training_data/character_XX/img/: ~100-200 images per character
+
+# Estimated execution time:
+# - Frame Extraction: 30-60 minutes (8 parallel workers)
+# - Segmentation: 60-120 minutes (SAM2 on GPU, ~2.5 sec/frame)
+# - Clustering: 15-30 minutes (CLIP encoding on GPU)
+# - Training Data Prep: 5-10 minutes (CPU image processing)
+# Total: ~2-3.5 hours
+
+# Resource requirements:
+# - CPU: 8+ cores (for parallel frame extraction)
+# - GPU: RTX 5080 16GB or equivalent
+#   - VRAM usage: ~6GB (SAM2-base) + ~4GB (CLIP) = ~10GB peak
+# - Disk: ~50-100GB for complete dataset
+# - RAM: 16GB+ recommended
