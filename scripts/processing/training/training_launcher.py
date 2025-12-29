@@ -14,6 +14,7 @@ Features:
 - Automatic recovery on OOM/failure
 - Training metrics extraction (loss, lr, epoch)
 - Checkpoint detection and validation
+- Optional post-processing: upsert trained LoRA into configs/generation/lora_registry.yaml
 
 Author: LLMProvider Tooling
 Date: 2025-11-30
@@ -330,6 +331,8 @@ class TrainingLauncher:
 
         # Launch process
         try:
+            process.start_time = time.time()
+
             if self.use_tmux:
                 pid = self._launch_tmux(cmd, job_id, log_file)
             else:
@@ -337,7 +340,6 @@ class TrainingLauncher:
 
             process.pid = pid
             process.status = TrainingStatus.RUNNING
-            process.start_time = time.time()
 
             self.processes[job_id] = process
 
@@ -371,8 +373,8 @@ class TrainingLauncher:
         cmd: List[str],
         log_file: Path,
         blocking: bool
-    ) -> int:
-        """Launch via subprocess"""
+    ) -> Optional[int]:
+        """Launch via subprocess (returns PID for background mode, else None)"""
         with open(log_file, 'w') as f:
             if blocking:
                 # Blocking: wait for completion
@@ -384,7 +386,7 @@ class TrainingLauncher:
                 )
                 if result.returncode != 0:
                     raise RuntimeError(f"Training failed with code {result.returncode}")
-                return -1  # No PID for completed process
+                return None  # No PID for completed process
             else:
                 # Background: start and return PID
                 process = subprocess.Popen(
@@ -588,13 +590,68 @@ class TrainingLauncher:
         return job_id
 
     @staticmethod
-    def _is_process_alive(pid: int) -> bool:
+    def _is_process_alive(pid: Optional[int]) -> bool:
         """Check if process is alive"""
+        if pid is None or pid <= 0:
+            return False
         try:
             os.kill(pid, 0)
             return True
         except OSError:
             return False
+
+
+def _extract_output_name_from_toml(config_path: Path) -> Optional[str]:
+    """
+    Extract `output_name` from a Kohya_ss TOML config without requiring external TOML deps.
+    """
+    try:
+        content = Path(config_path).read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+
+    match = re.search(r'^\s*output_name\s*=\s*["\']([^"\']+)["\']\s*$', content, re.MULTILINE)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def _derive_lora_name(config_path: Path, fallback: Optional[str] = None) -> Optional[str]:
+    """
+    Best-effort derive a registry LoRA name from training config.
+
+    TrainingConfigGenerator uses output_name like: `{character_name}_lora_sdxl`
+    """
+    output_name = _extract_output_name_from_toml(config_path)
+    if not output_name:
+        return fallback
+
+    for suffix in ("_lora_sdxl", "_sdxl_lora", "_sdxl"):
+        if output_name.endswith(suffix) and len(output_name) > len(suffix):
+            return output_name[: -len(suffix)]
+
+    return output_name
+
+
+def _resolve_latest_checkpoint(output_dir: Path, last_checkpoint: Optional[str] = None) -> Path:
+    """
+    Resolve the best checkpoint path from output directory.
+    Prefers `last_checkpoint` if provided and exists, else picks newest `.safetensors`.
+    """
+    output_dir = Path(output_dir)
+    if last_checkpoint:
+        candidate = output_dir / last_checkpoint
+        if candidate.exists():
+            return candidate
+
+    candidates = sorted(
+        output_dir.glob("*.safetensors"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        raise FileNotFoundError(f"No .safetensors checkpoints found in: {output_dir}")
+    return candidates[0]
 
 
 def main():
@@ -631,6 +688,32 @@ def main():
                        help="Required VRAM in MB")
     parser.add_argument("--state-file", type=str,
                        help="Save/load process state to/from file")
+
+    # Optional: auto-update LoRA registry after successful completion
+    parser.add_argument("--update-registry", action="store_true",
+                        help="After success, upsert LoRA into configs/generation/lora_registry.yaml")
+    parser.add_argument("--registry-path", type=str, default="configs/generation/lora_registry.yaml",
+                        help="Path to LoRA registry YAML")
+    parser.add_argument("--lora-name", type=str,
+                        help="LoRA name (defaults to derived from config output_name)")
+    parser.add_argument("--lora-type", type=str, default="character",
+                        help="LoRA type (character/style/background/pose)")
+    parser.add_argument("--lora-trigger-word", action="append",
+                        help="Trigger word (repeatable, defaults to [lora-name])")
+    parser.add_argument("--lora-recommended-weight", type=float, default=0.8,
+                        help="Recommended LoRA weight")
+    parser.add_argument("--lora-description", type=str, default="",
+                        help="Description for registry entry")
+    parser.add_argument("--lora-metadata-json", type=str,
+                        help="JSON object string for registry metadata")
+    parser.add_argument("--lora-stage-dir", type=str,
+                        help="Optional directory to copy/move final checkpoint into")
+    parser.add_argument("--lora-stage-filename", type=str,
+                        help="Optional filename in stage dir")
+    parser.add_argument("--lora-move", action="store_true",
+                        help="Move checkpoint to stage dir (default: copy)")
+    parser.add_argument("--lora-overwrite", action="store_true",
+                        help="Overwrite staged checkpoint if exists")
 
     args = parser.parse_args()
 
@@ -682,6 +765,54 @@ def main():
         # Final status
         final = launcher.get_status(args.job_id)
         logging.info(f"Final status: {final.status.value}")
+
+        # Optional: update LoRA registry after successful completion
+        if args.update_registry:
+            if not (args.blocking or args.monitor):
+                raise ValueError("--update-registry requires --blocking or --monitor to wait for completion")
+
+            if final.status != TrainingStatus.COMPLETED:
+                logging.warning("Skipping registry update (training not completed successfully)")
+            else:
+                from scripts.processing.training.lora_registry_updater import upsert_lora_entry
+
+                lora_name = args.lora_name or _derive_lora_name(Path(args.config))
+                if not lora_name:
+                    raise ValueError("Unable to derive LoRA name; pass --lora-name")
+
+                metadata = None
+                if args.lora_metadata_json:
+                    metadata = json.loads(args.lora_metadata_json)
+                    if not isinstance(metadata, dict):
+                        raise ValueError("--lora-metadata-json must be a JSON object")
+
+                checkpoint_path = _resolve_latest_checkpoint(
+                    Path(args.output_dir),
+                    last_checkpoint=final.metrics.last_checkpoint,
+                )
+
+                result = upsert_lora_entry(
+                    registry_path=Path(args.registry_path),
+                    lora_name=lora_name,
+                    lora_path=checkpoint_path,
+                    lora_type=args.lora_type,
+                    trigger_words=args.lora_trigger_word or [lora_name],
+                    recommended_weight=args.lora_recommended_weight,
+                    description=args.lora_description,
+                    metadata=metadata,
+                    stage_to_dir=Path(args.lora_stage_dir) if args.lora_stage_dir else None,
+                    stage_filename=args.lora_stage_filename,
+                    stage_move=args.lora_move,
+                    stage_overwrite=args.lora_overwrite,
+                )
+
+                logging.info(
+                    "Updated LoRA registry: %s (name=%s, artifact=%s, created=%s)",
+                    result.registry_path,
+                    result.lora_name,
+                    result.artifact_path,
+                    result.created,
+                )
 
         if final.status == TrainingStatus.FAILED:
             logging.error(f"Error: {final.error_message}")

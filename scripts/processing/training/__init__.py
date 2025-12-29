@@ -15,6 +15,7 @@ Components:
 - vocabulary_generator: Generate character-specific vocabularies
 - training_config_generator: Auto-generate training configurations
 - training_launcher: Launch training jobs
+- lora_registry_updater: Upsert trained LoRAs into configs/generation/lora_registry.yaml
 - batch_image_generator: Batch synthetic data generation
 """
 
