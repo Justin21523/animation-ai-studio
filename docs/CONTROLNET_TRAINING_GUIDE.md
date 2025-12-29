@@ -15,6 +15,8 @@
 3. **訓練完成後自動寫入 registry**（讓生成/agent 直接可用）  
    - 工具：`scripts/processing/training/controlnet_registry_updater.py`
    - Registry：`configs/generation/controlnet_config.yaml`
+4. **一鍵端到端（dataset → train → registry）**  
+   - 工具：`scripts/processing/training/controlnet_training_pipeline.py`
 
 ---
 
@@ -26,6 +28,27 @@
 - `model.base_model_repo`: 本機 SDXL base repo（包含 tokenizers / text encoders / scheduler）
 
 **如果你的 base_model 是單檔 `.safetensors`，訓練一定需要 `base_model_repo`（本機）**，否則會碰到 tokenizer/text encoder/scheduler 的離線相依問題。
+
+### （可選）把 OpenPose / Depth 模型落盤成「本機路徑」
+
+若你希望 `pose` / `depth` 的 control map 也能 **完全離線自動產生**，請先把對應模型下載/落盤到本機，並寫入：
+
+- `configs/generation/controlnet_config.yaml` → `preprocessing.pose.local_path`
+- `configs/generation/controlnet_config.yaml` → `preprocessing.depth.local_path`
+
+本專案提供工具協助「找 cache / 下載 / 自動改 config」：
+
+```bash
+python scripts/processing/controlnet/model_setup.py --preprocessor pose
+python scripts/processing/controlnet/model_setup.py --preprocessor depth
+```
+
+若本機沒有 cache，且你允許下載（需要網路）：
+
+```bash
+python scripts/processing/controlnet/model_setup.py --preprocessor pose --download --dest_dir /mnt/c/ai_models/detection/openpose_hf
+python scripts/processing/controlnet/model_setup.py --preprocessor depth --download --dest_dir /mnt/c/ai_models/depth/dpt_hybrid_midas
+```
 
 ---
 
@@ -169,7 +192,25 @@ python scripts/processing/training/controlnet_registry_updater.py \
 
 ---
 
+## 5) 一鍵端到端（推薦）
+
+1) 編輯 `configs/training/controlnet/pipeline.yaml`  
+2) 執行：
+
+```bash
+python scripts/processing/training/controlnet_training_pipeline.py \
+  --config configs/training/controlnet/pipeline.yaml
+```
+
+這會自動完成：
+
+- dataset: `outputs/controlnet_datasets/<dataset_name>/`
+- training: `outputs/controlnet_training/<output_name>/final/`
+- registry upsert: `configs/generation/controlnet_config.yaml`
+
 ## ⚠️ 備註（重要）
 
 - 生成端 `ControlNetPipelineManager` 也已復用同一套 preprocessors；`pose/depth` 仍採 **local-first**（需要先在 `configs/generation/controlnet_config.yaml` 設好 `preprocessing.pose.local_path` / `preprocessing.depth.local_path`）。
 - `seg` 預設用 `rembg` 產生 binary seg map；`normal` 預設由 `depth` 推導 normals（因此依賴 depth 模型）。
+- `scripts/processing/training/controlnet_training_pipeline.py` 目前是 **單進程** 的一鍵流程；若要多卡訓練，請改用：
+  - `controlnet_dataset_builder.py` → `accelerate launch sdxl_controlnet_trainer.py` → `controlnet_registry_updater.py`
