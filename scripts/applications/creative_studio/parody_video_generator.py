@@ -46,6 +46,7 @@ from scripts.agent.tools.video_analysis_tools import (
 from scripts.agent.tools.video_editing_tools import (
     create_edit_plan,
     auto_edit_video,
+    execute_edit_plan,
     create_parody_video,
     evaluate_video_quality
 )
@@ -221,12 +222,25 @@ class ParodyVideoGenerator:
             logger.info(f"  Plan created: {plan_result['total_decisions']} decisions")
 
             # Step 3: Execute parody effects
-            logger.info("Step 3/5: Executing parody effects...")
+            logger.info("Step 3/5: Executing edit plan + parody effects...")
 
-            # Use simplified parody generator for now
-            # (In full implementation, would execute all decisions from plan)
-            parody_result = await create_parody_video(
+            # 3a) Execute LLM edit plan decisions (cuts/speed/transitions/etc.)
+            plan_input = Path(output_video)
+            plan_output = str(plan_input.with_name(f"{plan_input.stem}_editplan.mp4"))
+
+            exec_result = await execute_edit_plan(
                 video_path=input_video,
+                plan_json_path=plan_result["output_json"],
+                output_path=plan_output,
+                target_duration=target_duration,
+            )
+
+            if not exec_result.get("success"):
+                raise Exception(f"Edit plan execution failed: {exec_result.get('error')}")
+
+            # 3b) Apply parody effects on top of the planned edit
+            parody_result = await create_parody_video(
+                video_path=plan_output,
                 output_path=output_video,
                 parody_style=style,
                 effects=effects
@@ -265,13 +279,22 @@ class ParodyVideoGenerator:
             generation_time = time.time() - start_time
 
             # Build result
+            actual_duration = parody_result.get("duration", 0.0)
+            try:
+                from moviepy.editor import VideoFileClip
+
+                with VideoFileClip(output_video) as clip:
+                    actual_duration = float(clip.duration)
+            except Exception:
+                pass
+
             result = ParodyGenerationResult(
                 success=True,
                 input_video=input_video,
                 output_video=output_video,
                 parody_style=style,
                 target_duration=target_duration or 0.0,
-                actual_duration=parody_result.get("duration", 0.0),
+                actual_duration=actual_duration,
                 generation_time=generation_time,
                 quality_score=quality_score,
                 scenes_detected=analyses["scenes"]["total_scenes"] if analyses else 0,
@@ -284,6 +307,7 @@ class ParodyVideoGenerator:
                 feedback=quality_result["feedback"],
                 iterations=iterations,
                 metadata={
+                    "edit_plan_execution": exec_result,
                     "effects_applied": parody_result.get("effects_applied", []),
                     "quality_details": quality_result
                 }

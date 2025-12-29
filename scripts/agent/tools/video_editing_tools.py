@@ -17,6 +17,8 @@ import sys
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
+import json
+import time
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
@@ -30,6 +32,281 @@ from scripts.editing.effects.parody_generator import ParodyGenerator
 
 
 logger = logging.getLogger(__name__)
+
+
+def _load_edit_plan_json(plan_json_path: str) -> Dict[str, Any]:
+    plan_path = Path(plan_json_path)
+    if not plan_path.exists():
+        raise FileNotFoundError(f"Edit plan JSON not found: {plan_path}")
+    with open(plan_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _safe_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _extract_segments_from_cut_decisions(
+    decisions: List[Dict[str, Any]],
+    target_duration: Optional[float] = None,
+) -> List[Dict[str, Any]]:
+    segments: List[Dict[str, Any]] = []
+
+    for decision in decisions:
+        if (decision.get("decision_type") or "").lower() != "cut":
+            continue
+
+        params = decision.get("parameters") or {}
+        start_time = _safe_float(params.get("start_time"), 0.0)
+        end_time = _safe_float(params.get("end_time"), 0.0)
+        if end_time <= start_time:
+            continue
+
+        segments.append(
+            {
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": end_time - start_time,
+                "priority": int(decision.get("priority", 5)),
+                "decision_id": decision.get("decision_id", ""),
+            }
+        )
+
+    if not segments:
+        return []
+
+    # Choose segments to meet target duration (best-effort).
+    if target_duration is not None and target_duration > 0:
+        by_priority = sorted(segments, key=lambda s: (s["priority"], s["duration"]), reverse=True)
+        chosen: List[Dict[str, Any]] = []
+        total = 0.0
+        for seg in by_priority:
+            chosen.append(seg)
+            total += float(seg["duration"])
+            if total >= float(target_duration):
+                break
+        segments = chosen
+
+    # Keep final ordering by time for coherent playback.
+    segments.sort(key=lambda s: s["start_time"])
+    return segments
+
+
+async def execute_edit_plan(
+    *,
+    video_path: str,
+    plan_json_path: str,
+    output_path: str,
+    target_duration: Optional[float] = None,
+    working_dir: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Execute a saved LLM edit plan (JSON) into an actual edited video.
+
+    Supported decision types (best-effort):
+    - cut (start_time, end_time)
+    - speed (start_time, end_time, speed_factor) [applied within each cut segment]
+    - transition (transition_type=crossfade, duration)
+    - text_overlay (text, position, start_time, duration, font_size, color)
+    - effect (effect_type: mirror_x|mirror_y|blackwhite|invert_colors|zoom_punch)
+    """
+    try:
+        plan = _load_edit_plan_json(plan_json_path)
+        decisions = plan.get("decisions", []) or []
+
+        work_root = Path(working_dir) if working_dir else Path("outputs/editing") / Path(video_path).stem / f"exec_{int(time.time())}"
+        work_root.mkdir(parents=True, exist_ok=True)
+
+        editor = VideoEditor()
+
+        cut_segments = _extract_segments_from_cut_decisions(decisions, target_duration=target_duration)
+
+        # If there are no cut decisions, treat the whole video as a single segment.
+        if not cut_segments:
+            cut_segments = [{"start_time": 0.0, "end_time": None, "duration": None, "priority": 0, "decision_id": "full"}]
+
+        speed_decisions = [d for d in decisions if (d.get("decision_type") or "").lower() == "speed"]
+        transition_decisions = [d for d in decisions if (d.get("decision_type") or "").lower() == "transition"]
+        text_decisions = [d for d in decisions if (d.get("decision_type") or "").lower() == "text_overlay"]
+        effect_decisions = [d for d in decisions if (d.get("decision_type") or "").lower() == "effect"]
+
+        transition = None
+        transition_duration = 0.5
+        if transition_decisions:
+            params = transition_decisions[0].get("parameters") or {}
+            transition = (params.get("transition_type") or "crossfade").lower()
+            transition_duration = _safe_float(params.get("duration"), 0.5)
+
+        # 1) Cut segments
+        segment_outputs: List[str] = []
+        for i, seg in enumerate(cut_segments):
+            start_time = float(seg["start_time"])
+            end_time = seg.get("end_time")
+
+            cut_output = work_root / f"cut_{i:03d}.mp4"
+            if end_time is None:
+                # For "full video", use original path directly (then apply optional speed edits).
+                segment_path = str(Path(video_path))
+            else:
+                result = editor.cut_clip(
+                    video_path=video_path,
+                    start_time=start_time,
+                    end_time=float(end_time),
+                    output_path=str(cut_output),
+                )
+                if not result.success:
+                    return {"success": False, "error": f"Cut failed: {result.metadata.get('error')}", "plan_json_path": plan_json_path}
+                segment_path = result.output_path
+
+            # 2) Apply speed decisions within this segment (relative time mapping).
+            if speed_decisions:
+                speed_segments: List[Tuple[float, float, float]] = []
+
+                if end_time is None:
+                    # Apply speed segments directly in the original timeline.
+                    for decision in speed_decisions:
+                        params = decision.get("parameters") or {}
+                        speed_segments.append(
+                            (
+                                _safe_float(params.get("start_time"), 0.0),
+                                _safe_float(params.get("end_time"), 0.0),
+                                _safe_float(params.get("speed_factor"), 1.0),
+                            )
+                        )
+                else:
+                    seg_end = float(end_time)
+                    for decision in speed_decisions:
+                        params = decision.get("parameters") or {}
+                        s = _safe_float(params.get("start_time"), 0.0)
+                        e = _safe_float(params.get("end_time"), 0.0)
+                        factor = _safe_float(params.get("speed_factor"), 1.0)
+
+                        overlap_start = max(s, start_time)
+                        overlap_end = min(e, seg_end)
+                        if overlap_end <= overlap_start:
+                            continue
+                        speed_segments.append((overlap_start - start_time, overlap_end - start_time, factor))
+
+                if speed_segments:
+                    speed_output = work_root / f"speed_{i:03d}.mp4"
+                    speed_result = editor.change_speed_segments(
+                        video_path=segment_path,
+                        speed_segments=speed_segments,
+                        output_path=str(speed_output),
+                    )
+                    if speed_result.success:
+                        segment_path = speed_result.output_path
+
+            segment_outputs.append(segment_path)
+
+        # 3) Concatenate all segments
+        concat_output = work_root / "concatenated.mp4"
+        if len(segment_outputs) == 1:
+            current_video = segment_outputs[0]
+        else:
+            concat_result = editor.concatenate_clips(
+                clip_paths=segment_outputs,
+                output_path=str(concat_output),
+                transition=transition if transition in ("crossfade",) else None,
+                transition_duration=transition_duration,
+            )
+            if not concat_result.success:
+                return {"success": False, "error": f"Concatenate failed: {concat_result.metadata.get('error')}", "plan_json_path": plan_json_path}
+            current_video = concat_result.output_path
+
+        # 4) Text overlays (best-effort, sequential)
+        for j, decision in enumerate(text_decisions):
+            params = decision.get("parameters") or {}
+            text = str(params.get("text", "")).strip()
+            if not text:
+                continue
+            pos = params.get("position") or (100, 100)
+            try:
+                position = (int(pos[0]), int(pos[1])) if isinstance(pos, (list, tuple)) and len(pos) == 2 else (100, 100)
+            except Exception:
+                position = (100, 100)
+
+            text_out = work_root / f"text_{j:03d}.mp4"
+            text_result = editor.add_text_overlay(
+                video_path=current_video,
+                text=text,
+                output_path=str(text_out),
+                position=position,
+                font_size=int(params.get("font_size", 50)),
+                color=str(params.get("color", "white")),
+                start_time=_safe_float(params.get("start_time"), 0.0),
+                duration=_safe_float(params.get("duration"), None) if params.get("duration") is not None else None,
+            )
+            if text_result.success:
+                current_video = text_result.output_path
+
+        # 5) Effects (best-effort, sequential)
+        for j, decision in enumerate(effect_decisions):
+            params = decision.get("parameters") or {}
+            effect_type = str(params.get("effect_type", "")).strip().lower()
+            if not effect_type:
+                continue
+
+            effect_out = work_root / f"effect_{j:03d}.mp4"
+
+            if effect_type in ("mirror_x", "mirror_y", "blackwhite", "invert_colors"):
+                effect_result = editor.apply_effect(
+                    video_path=current_video,
+                    effect_type=effect_type,
+                    output_path=str(effect_out),
+                    parameters=params,
+                )
+                if effect_result.success:
+                    current_video = effect_result.output_path
+                continue
+
+            if effect_type == "zoom_punch":
+                try:
+                    generator = ParodyGenerator()
+                    zoom_time = _safe_float(params.get("zoom_time"), 0.0)
+                    if zoom_time <= 0:
+                        zoom_time = 3.0
+                    zoom_factor = _safe_float(params.get("zoom_factor"), 1.5)
+                    zoom_duration = _safe_float(params.get("duration"), 0.5)
+                    effect_result = generator.apply_zoom_punch(
+                        video_path=current_video,
+                        zoom_time=zoom_time,
+                        output_path=str(effect_out),
+                        zoom_factor=zoom_factor,
+                        duration=zoom_duration,
+                    )
+                    if effect_result.get("success"):
+                        current_video = str(effect_out)
+                except Exception:
+                    pass
+
+        # Finalize
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        if Path(current_video).resolve() != Path(output_path).resolve():
+            # Copy final file into requested output path.
+            import shutil
+
+            shutil.copy2(current_video, output_path)
+
+        return {
+            "success": True,
+            "video_path": video_path,
+            "plan_json_path": plan_json_path,
+            "output_path": output_path,
+            "working_dir": str(work_root),
+            "decisions_total": len(decisions),
+            "cuts_applied": len([d for d in decisions if (d.get("decision_type") or "").lower() == "cut"]),
+            "speed_applied": len([d for d in decisions if (d.get("decision_type") or "").lower() == "speed"]),
+            "text_overlays_applied": len(text_decisions),
+            "effects_applied": len(effect_decisions),
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to execute edit plan: {e}")
+        return {"success": False, "error": str(e), "plan_json_path": plan_json_path}
 
 
 async def segment_characters(
@@ -441,10 +718,20 @@ async def auto_edit_video(
 
         results["edit_plan"] = plan_result
 
-        # Step 3: Execute edits (simplified - would execute all decisions)
+        # Step 3: Execute edits (execute plan decisions)
         logger.info("Step 3: Executing edits...")
-        # In full implementation, would execute each decision from plan
-        # For now, just return the plan
+        exec_result = await execute_edit_plan(
+            video_path=video_path,
+            plan_json_path=plan_result["output_json"],
+            output_path=output_path,
+            target_duration=None,
+        )
+
+        results["execution"] = exec_result
+        if not exec_result.get("success"):
+            results["success"] = False
+            results["error"] = exec_result.get("error", "Failed to execute edit plan")
+            return results
 
         # Step 4: Evaluate quality
         logger.info("Step 4: Evaluating quality...")

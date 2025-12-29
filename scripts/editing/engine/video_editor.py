@@ -311,6 +311,121 @@ class VideoEditor:
                 metadata={"error": str(e)}
             )
 
+    def change_speed_segments(
+        self,
+        video_path: str,
+        speed_segments: List[Tuple[float, float, float]],
+        output_path: str,
+        codec: str = "libx264",
+    ) -> EditResult:
+        """
+        Apply multiple speed changes to specific segments and stitch results.
+
+        Args:
+            video_path: Input video path
+            speed_segments: List of (start_time, end_time, speed_factor) in seconds
+            output_path: Output video path
+            codec: Video codec
+
+        Returns:
+            EditResult
+        """
+        start = time.time()
+
+        logger.info(f"Applying {len(speed_segments)} speed segment(s)")
+
+        try:
+            clip = VideoFileClip(video_path)
+            input_duration = clip.duration
+
+            # Normalize and validate segments
+            cleaned: List[Tuple[float, float, float]] = []
+            for seg_start, seg_end, factor in speed_segments:
+                try:
+                    seg_start_f = float(seg_start)
+                    seg_end_f = float(seg_end)
+                    factor_f = float(factor)
+                except Exception:
+                    continue
+
+                if factor_f <= 0:
+                    continue
+                seg_start_f = max(0.0, seg_start_f)
+                seg_end_f = min(float(input_duration), seg_end_f)
+                if seg_end_f <= seg_start_f:
+                    continue
+
+                cleaned.append((seg_start_f, seg_end_f, factor_f))
+
+            if not cleaned:
+                # No-op: just write the original clip to output.
+                Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+                clip.write_videofile(output_path, codec=codec, audio_codec="aac", logger=None)
+                output_duration = clip.duration
+                clip.close()
+                return EditResult(
+                    output_path=output_path,
+                    success=True,
+                    edit_time=time.time() - start,
+                    input_duration=input_duration,
+                    output_duration=output_duration,
+                    operations_applied=0,
+                    metadata={"operation": "speed_segments", "segments": []},
+                )
+
+            cleaned.sort(key=lambda x: x[0])
+
+            segments = []
+            current_time = 0.0
+
+            for seg_start, seg_end, factor in cleaned:
+                if current_time < seg_start:
+                    segments.append(clip.subclip(current_time, seg_start))
+
+                effect_seg = clip.subclip(seg_start, seg_end).fx(vfx.speedx, factor)
+                segments.append(effect_seg)
+                current_time = seg_end
+
+            if current_time < input_duration:
+                segments.append(clip.subclip(current_time, input_duration))
+
+            final_clip = concatenate_videoclips(segments, method="compose")
+
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            final_clip.write_videofile(output_path, codec=codec, audio_codec="aac", logger=None)
+
+            output_duration = final_clip.duration
+
+            clip.close()
+            final_clip.close()
+
+            edit_time = time.time() - start
+
+            return EditResult(
+                output_path=output_path,
+                success=True,
+                edit_time=edit_time,
+                input_duration=input_duration,
+                output_duration=output_duration,
+                operations_applied=len(cleaned),
+                metadata={
+                    "operation": "speed_segments",
+                    "segments": [{"start_time": s, "end_time": e, "speed_factor": f} for s, e, f in cleaned],
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to apply speed segments: {e}")
+            return EditResult(
+                output_path=output_path,
+                success=False,
+                edit_time=time.time() - start,
+                input_duration=0.0,
+                output_duration=0.0,
+                operations_applied=0,
+                metadata={"error": str(e)},
+            )
+
     def composite_layers(
         self,
         background_path: str,
@@ -496,6 +611,7 @@ class VideoEditor:
         position: Tuple[int, int] = (100, 100),
         font_size: int = 50,
         color: str = "white",
+        start_time: float = 0.0,
         duration: Optional[float] = None,
         codec: str = "libx264"
     ) -> EditResult:
@@ -524,13 +640,13 @@ class VideoEditor:
             input_duration = video.duration
 
             # Create text clip
-            txt_duration = duration if duration else video.duration
+            txt_duration = duration if duration is not None else max(0.0, video.duration - float(start_time))
             txt_clip = TextClip(
                 text,
                 fontsize=font_size,
                 color=color,
                 font="Arial"
-            ).set_position(position).set_duration(txt_duration)
+            ).set_position(position).set_start(float(start_time)).set_duration(txt_duration)
 
             # Composite
             final = CompositeVideoClip([video, txt_clip])
