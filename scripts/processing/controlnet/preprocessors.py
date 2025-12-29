@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import os
 import yaml
 from PIL import Image
 
@@ -38,6 +39,30 @@ def _coerce_bool(value: Any, default: bool) -> bool:
     if value is None:
         return default
     return bool(value)
+
+
+def _hf_cache_root() -> Path:
+    if os.environ.get("HF_HUB_CACHE"):
+        return Path(os.environ["HF_HUB_CACHE"])
+    if os.environ.get("HF_HOME"):
+        return Path(os.environ["HF_HOME"]) / "hub"
+    return Path.home() / ".cache" / "huggingface" / "hub"
+
+
+def _find_cached_snapshot(model_id: str) -> Optional[Path]:
+    model_id = str(model_id).strip()
+    if not model_id or "/" not in model_id:
+        return None
+
+    org, repo = model_id.split("/", 1)
+    root = _hf_cache_root() / f"models--{org}--{repo}" / "snapshots"
+    if not root.exists():
+        return None
+    candidates = [p for p in root.iterdir() if p.is_dir()]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return candidates[0]
 
 
 @dataclass(frozen=True)
@@ -302,6 +327,10 @@ class ControlNetPreprocessorFactory:
             model_source: Optional[str] = None
             if self.context.prefer_local_models and local_path and Path(local_path).exists():
                 model_source = local_path
+            elif self.context.prefer_local_models and model_id:
+                cached = _find_cached_snapshot(str(model_id))
+                if cached and cached.exists():
+                    model_source = str(cached)
             elif model_id and self.context.allow_download:
                 model_source = str(model_id)
 
@@ -326,6 +355,10 @@ class ControlNetPreprocessorFactory:
             model_source: Optional[str] = None
             if self.context.prefer_local_models and local_path and Path(local_path).exists():
                 model_source = local_path
+            elif self.context.prefer_local_models and model_id:
+                cached = _find_cached_snapshot(str(model_id))
+                if cached and cached.exists():
+                    model_source = str(cached)
             elif model_id and self.context.allow_download:
                 model_source = str(model_id)
 

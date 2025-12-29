@@ -23,7 +23,11 @@ from scripts.processing.controlnet.preprocessors import (
 )
 
 
-def test_pose_requires_local_path_when_download_disabled(tmp_path: Path):
+def test_pose_requires_local_path_when_download_disabled(tmp_path: Path, monkeypatch):
+    # Ensure tests do not depend on any global HF cache.
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "hf_cache"))
+    monkeypatch.delenv("HF_HOME", raising=False)
+
     cfg_path = tmp_path / "controlnet_config.yaml"
     cfg_path.write_text(
         yaml.safe_dump(
@@ -56,7 +60,10 @@ def test_pose_requires_local_path_when_download_disabled(tmp_path: Path):
     assert "preprocessing.pose.local_path" in str(exc.value)
 
 
-def test_depth_requires_local_path_when_download_disabled(tmp_path: Path):
+def test_depth_requires_local_path_when_download_disabled(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "hf_cache"))
+    monkeypatch.delenv("HF_HOME", raising=False)
+
     cfg_path = tmp_path / "controlnet_config.yaml"
     cfg_path.write_text(
         yaml.safe_dump(
