@@ -216,6 +216,7 @@ async def generate_scene_with_controlnet(
 
         controlnet = ControlNetPipelineManager(
             sdxl_model_path=base_model,
+            base_repo_path=model_cfg.get("base_model_repo"),
             control_type=control_type,
             device="cuda",
             dtype=torch.float16,

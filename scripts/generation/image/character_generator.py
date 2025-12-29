@@ -125,6 +125,7 @@ class CharacterGenerator:
 
         self.sdxl_manager = SDXLPipelineManager(
             model_path=model_config["base_model"],
+            base_repo_path=model_config.get("base_model_repo"),
             device=self.device,
             dtype=self.dtype,
             use_sdpa=True,
@@ -162,6 +163,7 @@ class CharacterGenerator:
 
         self.controlnet_manager = ControlNetPipelineManager(
             sdxl_model_path=model_config["base_model"],
+            base_repo_path=model_config.get("base_model_repo"),
             control_type=control_type,
             device=self.device,
             dtype=self.dtype,

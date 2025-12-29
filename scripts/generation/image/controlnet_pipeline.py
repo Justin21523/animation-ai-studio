@@ -75,6 +75,7 @@ class ControlNetPipelineManager:
     def __init__(
         self,
         sdxl_model_path: str,
+        base_repo_path: Optional[str] = None,
         control_type: str = "pose",
         controlnet_model_path: Optional[str] = None,
         controlnet_config_path: str = "configs/generation/controlnet_config.yaml",
@@ -91,6 +92,7 @@ class ControlNetPipelineManager:
 
         Args:
             sdxl_model_path: Path to SDXL base model
+            base_repo_path: Optional local SDXL base repo directory for tokenizers/text encoders
             control_type: Control type ("pose", "canny", "depth", etc.)
             controlnet_model_path: Optional custom ControlNet model path
             device: Device to use (cuda/cpu)
@@ -101,6 +103,7 @@ class ControlNetPipelineManager:
             variant: Model variant (fp16/fp32)
         """
         self.sdxl_model_path = Path(sdxl_model_path)
+        self.base_repo_path = Path(base_repo_path) if base_repo_path else None
         self.control_type = control_type
         self.device = device
         self.dtype = dtype
@@ -162,6 +165,41 @@ class ControlNetPipelineManager:
             )
         return self.DEFAULT_CONTROLNET_MODELS[control_type]
 
+    def _load_controlnet_model(self) -> ControlNetModel:
+        model_path = str(self.controlnet_model_path)
+        is_local_dir = False
+        local_dir = Path(model_path)
+        if local_dir.exists() and local_dir.is_dir():
+            is_local_dir = True
+
+        def has_variant_weights(model_dir: Path, variant: str) -> bool:
+            if not variant:
+                return False
+            candidates = [
+                model_dir / f"diffusion_pytorch_model.{variant}.safetensors",
+                model_dir / f"diffusion_pytorch_model.{variant}.bin",
+            ]
+            return any(p.exists() for p in candidates)
+
+        # Prefer not passing `variant` for local dirs unless the variant file exists,
+        # because many local ControlNet dirs only have `diffusion_pytorch_model.safetensors`.
+        variant = self.variant if (not is_local_dir or has_variant_weights(local_dir, self.variant)) else None
+
+        try:
+            return ControlNetModel.from_pretrained(
+                model_path,
+                torch_dtype=self.dtype,
+                variant=variant,
+            )
+        except Exception as e:
+            if variant:
+                print(f"WARNING: Failed to load ControlNet with variant='{variant}', retrying without variant: {e}")
+                return ControlNetModel.from_pretrained(
+                    model_path,
+                    torch_dtype=self.dtype,
+                )
+            raise
+
     def load_pipeline(self) -> StableDiffusionXLControlNetPipeline:
         """
         Load SDXL + ControlNet pipeline
@@ -191,30 +229,44 @@ class ControlNetPipelineManager:
         try:
             # Load ControlNet model
             print(f"Loading ControlNet model: {self.controlnet_model_path}")
-            controlnet = ControlNetModel.from_pretrained(
-                self.controlnet_model_path,
-                torch_dtype=self.dtype,
-                variant=self.variant if "diffusers/" not in str(self.controlnet_model_path) else None
-            )
+            controlnet = self._load_controlnet_model()
 
             # Load SDXL pipeline with ControlNet
             print(f"Loading SDXL base model: {self.sdxl_model_path}")
             if self.sdxl_model_path.is_file():
                 # Single-file checkpoint (.safetensors/.ckpt)
-                try:
-                    self.pipeline = StableDiffusionXLControlNetPipeline.from_single_file(
-                        str(self.sdxl_model_path),
-                        controlnet=controlnet,
-                        torch_dtype=self.dtype,
-                        use_safetensors=True
-                    )
-                except TypeError:
-                    # Some diffusers versions accept different kwargs; retry with minimal args.
-                    self.pipeline = StableDiffusionXLControlNetPipeline.from_single_file(
-                        str(self.sdxl_model_path),
-                        controlnet=controlnet,
-                        torch_dtype=self.dtype,
-                    )
+                from transformers import CLIPTokenizer, CLIPTextModel, CLIPTextModelWithProjection
+
+                base_repo = (
+                    str(self.base_repo_path)
+                    if self.base_repo_path and self.base_repo_path.exists()
+                    else "stabilityai/stable-diffusion-xl-base-1.0"
+                )
+                print(f"Loading tokenizers/text encoders from base SDXL repo: {base_repo}")
+
+                tokenizer = CLIPTokenizer.from_pretrained(base_repo, subfolder="tokenizer")
+                tokenizer_2 = CLIPTokenizer.from_pretrained(base_repo, subfolder="tokenizer_2")
+                text_encoder = CLIPTextModel.from_pretrained(
+                    base_repo,
+                    subfolder="text_encoder",
+                    torch_dtype=self.dtype,
+                )
+                text_encoder_2 = CLIPTextModelWithProjection.from_pretrained(
+                    base_repo,
+                    subfolder="text_encoder_2",
+                    torch_dtype=self.dtype,
+                )
+
+                self.pipeline = StableDiffusionXLControlNetPipeline.from_single_file(
+                    str(self.sdxl_model_path),
+                    controlnet=controlnet,
+                    torch_dtype=self.dtype,
+                    use_safetensors=True,
+                    tokenizer=tokenizer,
+                    tokenizer_2=tokenizer_2,
+                    text_encoder=text_encoder,
+                    text_encoder_2=text_encoder_2,
+                )
             else:
                 # HuggingFace diffusers directory
                 self.pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
