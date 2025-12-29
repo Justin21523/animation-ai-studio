@@ -209,6 +209,59 @@ class TransformersDepthPreprocessor(ControlImagePreprocessor):
         return Image.fromarray(depth_rgb)
 
 
+class RembgSegmentationPreprocessor(ControlImagePreprocessor):
+    def __init__(self, *, model_name: str = "isnet-general-use"):
+        try:
+            from rembg import new_session, remove
+        except ImportError as e:
+            raise PreprocessorUnavailableError(
+                "rembg is required for segmentation preprocessing. Install with: pip install rembg"
+            ) from e
+
+        self._remove = remove
+        self._session = new_session(str(model_name))
+
+    def __call__(self, image: Image.Image, *, detect_resolution: int, image_resolution: int) -> Image.Image:
+        import numpy as np
+
+        image = image.convert("RGB").resize((int(detect_resolution), int(detect_resolution)), Image.LANCZOS)
+        mask = self._remove(image, session=self._session, only_mask=True)
+        mask = mask.resize((int(image_resolution), int(image_resolution)), Image.NEAREST)
+
+        mask_np = np.array(mask)
+        if mask_np.ndim == 3:
+            mask_np = mask_np[..., 0]
+
+        mask_u8 = (mask_np > 127).astype("uint8") * 255
+        seg_rgb = np.stack([mask_u8] * 3, axis=-1)
+        return Image.fromarray(seg_rgb)
+
+
+class NormalFromDepthPreprocessor(ControlImagePreprocessor):
+    def __init__(self, depth_preprocessor: ControlImagePreprocessor):
+        self._depth = depth_preprocessor
+
+    def __call__(self, image: Image.Image, *, detect_resolution: int, image_resolution: int) -> Image.Image:
+        import numpy as np
+
+        depth_img = self._depth(image, detect_resolution=detect_resolution, image_resolution=image_resolution)
+        depth = np.array(depth_img.convert("L")).astype("float32") / 255.0
+
+        dzdy, dzdx = np.gradient(depth)
+        nx = -dzdx
+        ny = -dzdy
+        nz = np.ones_like(depth, dtype="float32")
+
+        norm = np.sqrt(nx * nx + ny * ny + nz * nz) + 1e-8
+        nx = nx / norm
+        ny = ny / norm
+        nz = nz / norm
+
+        normal = np.stack([(nx * 0.5 + 0.5), (ny * 0.5 + 0.5), (nz * 0.5 + 0.5)], axis=-1)
+        normal_u8 = (normal * 255.0).clip(0, 255).astype("uint8")
+        return Image.fromarray(normal_u8)
+
+
 class ControlNetPreprocessorFactory:
     def __init__(self, context: PreprocessorContext):
         self.context = context
@@ -285,13 +338,12 @@ class ControlNetPreprocessorFactory:
                 allow_download=bool(self.context.allow_download),
             )
         elif key in ("seg", "segmentation"):
-            raise PreprocessorUnavailableError(
-                "segmentation preprocessor not enabled yet (provide --control_images_dir or enable rembg/SAM2)."
-            )
+            seg_cfg = preprocessing_cfg.get("seg") or preprocessing_cfg.get("segmentation") or {}
+            model_name = seg_cfg.get("model") or "isnet-general-use"
+            pre = RembgSegmentationPreprocessor(model_name=str(model_name))
         elif key in ("normal", "normal_map"):
-            raise PreprocessorUnavailableError(
-                "normal preprocessor not enabled yet (provide --control_images_dir or enable depth->normal)."
-            )
+            depth_pre = self.get("depth")
+            pre = NormalFromDepthPreprocessor(depth_pre)
         else:
             raise PreprocessorUnavailableError(f"Unknown preprocess_type: {preprocess_type}")
 

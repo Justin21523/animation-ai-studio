@@ -118,6 +118,15 @@ preprocessing:
     local_path: null  # Optional: local HF snapshot/repo dir to avoid downloads
     device: "cuda"
 
+  seg:
+    # Segmentation map generation (default uses rembg mask → binary seg map).
+    backend: "rembg"
+    model: "isnet-general-use"
+
+  normal:
+    # Default normal map generation derives normals from the depth map.
+    backend: "from_depth"
+
 # VRAM considerations
 vram:
   # SDXL + ControlNet requires ~14-15GB VRAM
