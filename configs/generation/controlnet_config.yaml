@@ -2,6 +2,9 @@
 # Animation AI Studio - Image Generation Module
 
 # ControlNet models (HuggingFace)
+# Optional per-model fields:
+# - preprocess_as: Force control-image preprocessing type (canny|pose|depth|seg|normal). Useful when the key is a
+#   custom model name but you want to reuse existing preprocessing behavior.
 controlnet_models:
   pose:
     model_id: "diffusers/controlnet-openpose-sdxl-1.0"

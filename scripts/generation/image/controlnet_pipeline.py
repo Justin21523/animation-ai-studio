@@ -120,6 +120,8 @@ class ControlNetPipelineManager:
             control_type=control_type,
             override_path=controlnet_model_path,
         )
+        # Determine how to preprocess control images (may differ from the model key).
+        self.preprocess_type = self._resolve_preprocess_type(control_type)
 
         self.pipeline: Optional[StableDiffusionXLControlNetPipeline] = None
         self.is_loaded = False
@@ -164,6 +166,21 @@ class ControlNetPipelineManager:
                 f"Available: {list(self.DEFAULT_CONTROLNET_MODELS.keys())}"
             )
         return self.DEFAULT_CONTROLNET_MODELS[control_type]
+
+    def _resolve_preprocess_type(self, control_type: str) -> str:
+        # Default: preprocess using the same control_type.
+        if self.controlnet_config_path.exists():
+            try:
+                with open(self.controlnet_config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+                models_cfg = cfg.get("controlnet_models") or {}
+                entry = models_cfg.get(control_type) or {}
+                preprocess_as = entry.get("preprocess_as")
+                if preprocess_as:
+                    return str(preprocess_as)
+            except Exception as e:
+                print(f"WARNING: Failed to read ControlNet config {self.controlnet_config_path}: {e}")
+        return str(control_type)
 
     def _load_controlnet_model(self) -> ControlNetModel:
         model_path = str(self.controlnet_model_path)
@@ -358,17 +375,17 @@ class ControlNetPipelineManager:
         image_np = np.array(image)
 
         # Preprocess based on control type
-        if self.control_type == "canny":
+        if self.preprocess_type == "canny":
             # Canny edge detection
             image_np = cv2.Canny(image_np, 100, 200)
             image_np = np.stack([image_np] * 3, axis=-1)
 
-        elif self.control_type == "pose":
+        elif self.preprocess_type == "pose":
             # For pose, use external pose detector (not included here)
             # Placeholder: return original image
             print("WARNING: Pose detection not implemented. Use preprocessed pose image.")
 
-        elif self.control_type == "depth":
+        elif self.preprocess_type == "depth":
             # For depth, use external depth estimator (not included here)
             # Placeholder: return original image
             print("WARNING: Depth estimation not implemented. Use preprocessed depth map.")
