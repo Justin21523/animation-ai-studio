@@ -1,0 +1,33 @@
+# ControlNet dataset builder (template)
+#
+# Example 1 (precomputed depth maps):
+#   images_dir: "/path/to/target_images"
+#   control_images_dir: "/path/to/depth_maps"
+#   control_type: "depth"
+#
+# Example 2 (compute canny edges):
+#   images_dir: "/path/to/target_images"
+#   control_type: "canny"
+#
+# Then run:
+#   python scripts/processing/training/controlnet_dataset_builder.py --config configs/training/controlnet/dataset_builder.yaml --output_dir outputs/controlnet_datasets/my_dataset
+
+images_dir: null
+output_dir: null
+control_type: null
+
+# Optional: directory of precomputed control images (same stem as images)
+control_images_dir: null
+
+# Optional: directory of captions .txt (same stem as images)
+captions_dir: null
+
+resolution: 1024
+default_caption: ""
+
+# Canny parameters (used when computing control images)
+canny_low_threshold: 100
+canny_high_threshold: 200
+
+overwrite: false
+log_level: "INFO"
