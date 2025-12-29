@@ -126,6 +126,7 @@ class ControlNetPipelineManager:
         self.pipeline: Optional[StableDiffusionXLControlNetPipeline] = None
         self.is_loaded = False
         self.vram_usage_gb: float = 0.0
+        self._preprocessor_factory = None
 
         # Verify PyTorch SDPA requirement
         if not use_sdpa:
@@ -367,35 +368,36 @@ class ControlNetPipelineManager:
             image = load_image(image)
         elif isinstance(image, np.ndarray):
             image = Image.fromarray(image)
+        image = image.convert("RGB")
 
-        # Resize to detection resolution
-        image = image.resize((detect_resolution, detect_resolution))
-
-        # Convert to numpy
-        image_np = np.array(image)
-
-        # Preprocess based on control type
-        if self.preprocess_type == "canny":
-            # Canny edge detection
-            image_np = cv2.Canny(image_np, 100, 200)
-            image_np = np.stack([image_np] * 3, axis=-1)
-
-        elif self.preprocess_type == "pose":
-            # For pose, use external pose detector (not included here)
-            # Placeholder: return original image
-            print("WARNING: Pose detection not implemented. Use preprocessed pose image.")
-
-        elif self.preprocess_type == "depth":
-            # For depth, use external depth estimator (not included here)
-            # Placeholder: return original image
-            print("WARNING: Depth estimation not implemented. Use preprocessed depth map.")
-
-        # Convert back to PIL and resize to target resolution
-        control_image = Image.fromarray(image_np).resize(
-            (image_resolution, image_resolution)
+        from scripts.processing.controlnet.preprocessors import (
+            ControlNetPreprocessorFactory,
+            PreprocessorContext,
+            PreprocessorUnavailableError,
         )
 
-        return control_image
+        if self._preprocessor_factory is None:
+            self._preprocessor_factory = ControlNetPreprocessorFactory(
+                PreprocessorContext(
+                    controlnet_config_path=str(self.controlnet_config_path),
+                    prefer_local_models=bool(self.prefer_local_path),
+                    allow_download=False,
+                    device=str(self.device),
+                )
+            )
+
+        try:
+            preprocessor = self._preprocessor_factory.get(str(self.preprocess_type))
+            return preprocessor(
+                image,
+                detect_resolution=int(detect_resolution),
+                image_resolution=int(image_resolution),
+            )
+        except PreprocessorUnavailableError as e:
+            raise RuntimeError(
+                f"Control preprocessor unavailable for '{self.preprocess_type}': {e}. "
+                "Provide a precomputed control image or configure local models in configs/generation/controlnet_config.yaml."
+            ) from e
 
     def generate(
         self,
