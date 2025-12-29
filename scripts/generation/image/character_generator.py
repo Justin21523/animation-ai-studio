@@ -382,6 +382,185 @@ class CharacterGenerator:
 
         return image
 
+    def img2img_character(
+        self,
+        character: str,
+        scene_description: str,
+        init_image: Union[str, Image.Image],
+        style: str = "pixar_3d",
+        quality_preset: str = "standard",
+        strength: float = 0.35,
+        additional_loras: Optional[List[Dict[str, Any]]] = None,
+        negative_prompt: Optional[str] = None,
+        seed: Optional[int] = None,
+        output_path: Optional[str] = None
+    ) -> Image.Image:
+        """
+        Character-aware SDXL img2img with optional LoRA.
+
+        Args:
+            character: Character name
+            scene_description: Desired edit description
+            init_image: Input image (path or PIL.Image)
+            style: Style key
+            quality_preset: draft/standard/high/ultra
+            strength: Denoising strength (0.0-1.0)
+            additional_loras: Optional extra LoRAs
+            negative_prompt: Optional negative prompt override
+            seed: Optional seed
+            output_path: Optional path to save
+        """
+        self._initialize_sdxl()
+
+        character_lora_config = self.lora_registry.get_character_lora(character)
+        include_trigger_words = bool(
+            character_lora_config and
+            character_lora_config.trigger_words and
+            Path(character_lora_config.path).exists()
+        )
+        prompt = self._build_prompt(
+            character=character,
+            scene_description=scene_description,
+            style=style,
+            include_trigger_words=include_trigger_words
+        )
+
+        if negative_prompt is None:
+            negative_prompt = self._get_negative_prompt("character")
+
+        # Quality preset mapping
+        num_inference_steps = 30
+        guidance_scale = 7.5
+        try:
+            preset = self.sdxl_config.get("generation", {}).get("quality_presets", {}).get(quality_preset)
+            if preset:
+                num_inference_steps = int(preset.get("steps", num_inference_steps))
+                guidance_scale = float(preset.get("cfg_scale", guidance_scale))
+        except Exception:
+            pass
+
+        # Load character LoRA (best-effort)
+        try:
+            self.lora_manager.load_lora(character)
+        except Exception as e:
+            print(f"WARNING: Failed to load character LoRA, proceeding without LoRA: {e}")
+
+        # Load additional LoRAs if specified (best-effort)
+        if additional_loras:
+            for lora_config in additional_loras:
+                try:
+                    self.lora_manager.load_lora(
+                        lora_name=lora_config["name"],
+                        weight=lora_config.get("weight")
+                    )
+                except Exception as e:
+                    print(f"WARNING: Failed to load LoRA '{lora_config.get('name')}', skipping: {e}")
+
+        image = self.sdxl_manager.img2img(
+            prompt=prompt,
+            init_image=init_image,
+            negative_prompt=negative_prompt,
+            strength=strength,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            output_path=output_path
+        )
+
+        self.lora_manager.unload_all_loras()
+        return image
+
+    def inpaint_character(
+        self,
+        character: str,
+        scene_description: str,
+        init_image: Union[str, Image.Image],
+        mask_image: Union[str, Image.Image],
+        style: str = "pixar_3d",
+        quality_preset: str = "standard",
+        strength: float = 0.5,
+        additional_loras: Optional[List[Dict[str, Any]]] = None,
+        negative_prompt: Optional[str] = None,
+        seed: Optional[int] = None,
+        output_path: Optional[str] = None
+    ) -> Image.Image:
+        """
+        Character-aware SDXL inpaint with optional LoRA.
+
+        Args:
+            character: Character name
+            scene_description: Desired edit description
+            init_image: Input image (path or PIL.Image)
+            mask_image: Mask image (white=inpaint, black=keep)
+            style: Style key
+            quality_preset: draft/standard/high/ultra
+            strength: Denoising strength (0.0-1.0)
+            additional_loras: Optional extra LoRAs
+            negative_prompt: Optional negative prompt override
+            seed: Optional seed
+            output_path: Optional path to save
+        """
+        self._initialize_sdxl()
+
+        character_lora_config = self.lora_registry.get_character_lora(character)
+        include_trigger_words = bool(
+            character_lora_config and
+            character_lora_config.trigger_words and
+            Path(character_lora_config.path).exists()
+        )
+        prompt = self._build_prompt(
+            character=character,
+            scene_description=scene_description,
+            style=style,
+            include_trigger_words=include_trigger_words
+        )
+
+        if negative_prompt is None:
+            negative_prompt = self._get_negative_prompt("character")
+
+        # Quality preset mapping
+        num_inference_steps = 30
+        guidance_scale = 7.5
+        try:
+            preset = self.sdxl_config.get("generation", {}).get("quality_presets", {}).get(quality_preset)
+            if preset:
+                num_inference_steps = int(preset.get("steps", num_inference_steps))
+                guidance_scale = float(preset.get("cfg_scale", guidance_scale))
+        except Exception:
+            pass
+
+        # Load character LoRA (best-effort)
+        try:
+            self.lora_manager.load_lora(character)
+        except Exception as e:
+            print(f"WARNING: Failed to load character LoRA, proceeding without LoRA: {e}")
+
+        # Load additional LoRAs if specified (best-effort)
+        if additional_loras:
+            for lora_config in additional_loras:
+                try:
+                    self.lora_manager.load_lora(
+                        lora_name=lora_config["name"],
+                        weight=lora_config.get("weight")
+                    )
+                except Exception as e:
+                    print(f"WARNING: Failed to load LoRA '{lora_config.get('name')}', skipping: {e}")
+
+        image = self.sdxl_manager.inpaint(
+            prompt=prompt,
+            init_image=init_image,
+            mask_image=mask_image,
+            negative_prompt=negative_prompt,
+            strength=strength,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            output_path=output_path
+        )
+
+        self.lora_manager.unload_all_loras()
+        return image
+
     def generate_batch(
         self,
         configs: List[CharacterGenerationConfig],

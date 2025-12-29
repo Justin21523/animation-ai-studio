@@ -25,6 +25,8 @@ import time
 try:
     from diffusers import (
         StableDiffusionXLPipeline,
+        AutoPipelineForImage2Image,
+        AutoPipelineForInpainting,
         DPMSolverMultistepScheduler,
         EulerDiscreteScheduler,
         DDIMScheduler
@@ -102,6 +104,8 @@ class SDXLPipelineManager:
         self.variant = variant
 
         self.pipeline: Optional[StableDiffusionXLPipeline] = None
+        self.img2img_pipeline = None
+        self.inpaint_pipeline = None
         self.is_loaded = False
 
         # VRAM tracking
@@ -288,8 +292,23 @@ class SDXLPipelineManager:
         print("Unloading SDXL pipeline...")
 
         # Delete pipeline
-        del self.pipeline
-        self.pipeline = None
+        if self.img2img_pipeline is not None:
+            try:
+                del self.img2img_pipeline
+            except Exception:
+                pass
+            self.img2img_pipeline = None
+
+        if self.inpaint_pipeline is not None:
+            try:
+                del self.inpaint_pipeline
+            except Exception:
+                pass
+            self.inpaint_pipeline = None
+
+        if self.pipeline is not None:
+            del self.pipeline
+            self.pipeline = None
         self.is_loaded = False
 
         # Clear VRAM
@@ -415,6 +434,189 @@ class SDXLPipelineManager:
 
         # Return single image or list
         return images[0] if len(images) == 1 else images
+
+    def _get_img2img_pipeline(self):
+        """Get or create SDXL img2img pipeline (shares weights with base pipeline)."""
+        if not self.is_loaded or self.pipeline is None:
+            raise RuntimeError("Base pipeline not loaded. Call load_pipeline() first.")
+
+        if self.img2img_pipeline is not None:
+            return self.img2img_pipeline
+
+        print("Creating SDXL img2img pipeline from base pipeline...")
+        pipe = AutoPipelineForImage2Image.from_pipe(self.pipeline)
+
+        # Move to device or enable CPU offload
+        if not self.enable_model_cpu_offload:
+            pipe = pipe.to(self.device)
+        else:
+            pipe.enable_model_cpu_offload()
+
+        # VAE optimizations
+        if self.enable_vae_slicing:
+            pipe.enable_vae_slicing()
+        if self.enable_vae_tiling:
+            pipe.enable_vae_tiling()
+
+        self.img2img_pipeline = pipe
+        return self.img2img_pipeline
+
+    def _get_inpaint_pipeline(self):
+        """Get or create SDXL inpaint pipeline (shares weights with base pipeline)."""
+        if not self.is_loaded or self.pipeline is None:
+            raise RuntimeError("Base pipeline not loaded. Call load_pipeline() first.")
+
+        if self.inpaint_pipeline is not None:
+            return self.inpaint_pipeline
+
+        print("Creating SDXL inpaint pipeline from base pipeline...")
+        pipe = AutoPipelineForInpainting.from_pipe(self.pipeline)
+
+        # Move to device or enable CPU offload
+        if not self.enable_model_cpu_offload:
+            pipe = pipe.to(self.device)
+        else:
+            pipe.enable_model_cpu_offload()
+
+        # VAE optimizations
+        if self.enable_vae_slicing:
+            pipe.enable_vae_slicing()
+        if self.enable_vae_tiling:
+            pipe.enable_vae_tiling()
+
+        self.inpaint_pipeline = pipe
+        return self.inpaint_pipeline
+
+    def img2img(
+        self,
+        prompt: str,
+        init_image: Union[str, Image.Image],
+        negative_prompt: str = "",
+        strength: float = 0.35,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 7.5,
+        seed: Optional[int] = None,
+        output_path: Optional[str] = None
+    ) -> Image.Image:
+        """
+        SDXL image-to-image generation.
+
+        Args:
+            prompt: Text prompt
+            init_image: Initial image (path or PIL.Image)
+            negative_prompt: Negative prompt
+            strength: Denoising strength (0.0-1.0)
+            num_inference_steps: Denoising steps
+            guidance_scale: CFG scale
+            seed: Random seed
+            output_path: Optional path to save output
+
+        Returns:
+            Generated PIL.Image
+        """
+        pipe = self._get_img2img_pipeline()
+
+        if isinstance(init_image, str):
+            init_image = Image.open(init_image).convert("RGB")
+        elif isinstance(init_image, Image.Image):
+            init_image = init_image.convert("RGB")
+        else:
+            raise TypeError("init_image must be a file path or PIL.Image")
+
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=self.device).manual_seed(seed)
+            print(f"Using seed: {seed}")
+
+        print("Generating img2img...")
+        output = pipe(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            image=init_image,
+            strength=strength,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            generator=generator,
+        )
+
+        image = output.images[0]
+        if output_path:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            image.save(output_path)
+            print(f"Saved to: {output_path}")
+        return image
+
+    def inpaint(
+        self,
+        prompt: str,
+        init_image: Union[str, Image.Image],
+        mask_image: Union[str, Image.Image],
+        negative_prompt: str = "",
+        strength: float = 0.5,
+        num_inference_steps: int = 30,
+        guidance_scale: float = 7.5,
+        seed: Optional[int] = None,
+        output_path: Optional[str] = None
+    ) -> Image.Image:
+        """
+        SDXL inpainting.
+
+        Args:
+            prompt: Text prompt
+            init_image: Original image (path or PIL.Image)
+            mask_image: Mask image (path or PIL.Image, white=paint, black=keep)
+            negative_prompt: Negative prompt
+            strength: Denoising strength (0.0-1.0)
+            num_inference_steps: Denoising steps
+            guidance_scale: CFG scale
+            seed: Random seed
+            output_path: Optional path to save output
+
+        Returns:
+            Generated PIL.Image
+        """
+        pipe = self._get_inpaint_pipeline()
+
+        if isinstance(init_image, str):
+            init_image = Image.open(init_image).convert("RGB")
+        elif isinstance(init_image, Image.Image):
+            init_image = init_image.convert("RGB")
+        else:
+            raise TypeError("init_image must be a file path or PIL.Image")
+
+        if isinstance(mask_image, str):
+            mask_image = Image.open(mask_image)
+        elif not isinstance(mask_image, Image.Image):
+            raise TypeError("mask_image must be a file path or PIL.Image")
+
+        # Ensure mask is single-channel L
+        mask_image = mask_image.convert("L")
+
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=self.device).manual_seed(seed)
+            print(f"Using seed: {seed}")
+
+        print("Generating inpaint...")
+        output = pipe(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            image=init_image,
+            mask_image=mask_image,
+            strength=strength,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            generator=generator,
+        )
+
+        image = output.images[0]
+        if output_path:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            image.save(output_path)
+            print(f"Saved to: {output_path}")
+        return image
 
     def generate_with_config(
         self,
