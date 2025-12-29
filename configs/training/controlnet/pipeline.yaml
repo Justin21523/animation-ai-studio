@@ -1,0 +1,44 @@
+# End-to-end SDXL ControlNet training pipeline (template)
+#
+# Run:
+#   python scripts/processing/training/controlnet_training_pipeline.py --config configs/training/controlnet/pipeline.yaml
+#
+# Notes:
+# - `control_type` selects which control map to generate (pose/depth/seg/normal/canny/...).
+# - For offline pose/depth generation, set local paths in `configs/generation/controlnet_config.yaml`:
+#     - preprocessing.pose.local_path
+#     - preprocessing.depth.local_path
+
+images_dir: null
+captions_dir: null
+control_images_dir: null  # optional precomputed controls (same stem as images)
+default_caption: ""
+
+control_type: "canny"
+controlnet_config_path: "configs/generation/controlnet_config.yaml"
+detect_resolution: 512
+resolution: 1024
+prefer_local_models: true
+allow_download: false
+device: "cuda"
+overwrite_dataset: false
+
+dataset_output_dir: "outputs/controlnet_datasets"
+dataset_name: null
+
+# Reuse existing trainer config (the pipeline will inject dataset_dir at runtime)
+trainer_config_path: "configs/training/controlnet/trainer.yaml"
+
+# Registry update
+registry_path: "configs/generation/controlnet_config.yaml"
+controlnet_key: null          # default: training.output_name
+preprocess_as: null           # default: control_type
+description: ""
+use_case: ""
+
+# Optional staging (落盤) for trained model directory
+stage_to_dir: null
+stage_name: null
+stage_move: false
+stage_overwrite: false
+
