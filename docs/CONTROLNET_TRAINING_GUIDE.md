@@ -8,7 +8,7 @@
 
 ## ✅ 你現在可以做到什麼
 
-1. **把影像+控制圖做成可訓練資料集**（可選：用現成控制圖 / 自動算 Canny 類控制圖）  
+1. **把影像+控制圖做成可訓練資料集**（可選：用現成控制圖 / 自動產生 control maps）  
    - 工具：`scripts/processing/training/controlnet_dataset_builder.py`
 2. **用 diffusers + accelerate 直接訓練 SDXL ControlNet**（離線本機模型）  
    - 工具：`scripts/processing/training/sdxl_controlnet_trainer.py`
@@ -67,6 +67,40 @@ python scripts/processing/training/controlnet_dataset_builder.py \
   --control_type canny \
   --output_dir outputs/controlnet_datasets/canny_v1 \
   --resolution 1024 \
+  --overwrite
+```
+
+### C. 直接從目標圖計算控制圖（pose/depth/seg/normal/tile）
+
+本專案已把前處理統一到 `configs/generation/controlnet_config.yaml` 的 `preprocessing.*`：
+
+- `pose`：使用 `controlnet_aux` OpenPose（**必須設定 `preprocessing.pose.local_path` 才能離線**）
+- `depth`：使用 `transformers` 深度估計（ZoeDepth/MiDaS 皆可，**必須設定 `preprocessing.depth.local_path` 才能離線**）
+- `seg`：預設使用 `rembg` 產生 mask → binary seg map
+- `normal`：預設由 `depth` 推導 normals（所以也依賴 depth 模型）
+- `tile`：直接用圖本身作為 conditioning
+
+例：產生 pose dataset（會讀 `configs/generation/controlnet_config.yaml`）
+
+```bash
+python scripts/processing/training/controlnet_dataset_builder.py \
+  --images_dir /path/to/target_images \
+  --control_type pose \
+  --output_dir outputs/controlnet_datasets/pose_v1 \
+  --resolution 1024 \
+  --detect_resolution 512 \
+  --overwrite
+```
+
+例：產生 depth dataset（ZoeDepth/MiDaS 取決於你在 `preprocessing.depth.*` 的設定）
+
+```bash
+python scripts/processing/training/controlnet_dataset_builder.py \
+  --images_dir /path/to/target_images \
+  --control_type depth \
+  --output_dir outputs/controlnet_datasets/depth_v1 \
+  --resolution 1024 \
+  --detect_resolution 512 \
   --overwrite
 ```
 
@@ -137,6 +171,5 @@ python scripts/processing/training/controlnet_registry_updater.py \
 
 ## ⚠️ 備註（重要）
 
-- 本專案的 `ControlNetPipelineManager` 目前只內建 `canny` 的控制圖前處理；`pose/depth` 仍偏向「使用你已經算好的控制圖」。
-- 如果你要完整自動化 `pose` / `depth` 控制圖產生，可以再接：`controlnet_aux`（pose）與深度估計模型（depth），並把結果納入 dataset builder。
-
+- 生成端 `ControlNetPipelineManager` 也已復用同一套 preprocessors；`pose/depth` 仍採 **local-first**（需要先在 `configs/generation/controlnet_config.yaml` 設好 `preprocessing.pose.local_path` / `preprocessing.depth.local_path`）。
+- `seg` 預設用 `rembg` 產生 binary seg map；`normal` 預設由 `depth` 推導 normals（因此依賴 depth 模型）。

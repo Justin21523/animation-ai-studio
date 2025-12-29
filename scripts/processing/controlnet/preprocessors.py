@@ -211,6 +211,11 @@ class TransformersDepthPreprocessor(ControlImagePreprocessor):
 
 class RembgSegmentationPreprocessor(ControlImagePreprocessor):
     def __init__(self, *, model_name: str = "isnet-general-use"):
+        # NOTE: rembg may fail to import in some environments due to numba caching issues.
+        # Disabling JIT is a pragmatic local-first default for stable pipelines.
+        import os
+
+        os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
         try:
             from rembg import new_session, remove
         except ImportError as e:
