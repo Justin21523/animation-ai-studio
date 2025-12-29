@@ -1,0 +1,36 @@
+# SDXL ControlNet trainer (template)
+#
+# Run (single GPU):
+#   python scripts/processing/training/sdxl_controlnet_trainer.py --config configs/training/controlnet/trainer.yaml
+#
+# Run (via accelerate):
+#   accelerate launch scripts/processing/training/sdxl_controlnet_trainer.py --config configs/training/controlnet/trainer.yaml
+
+dataset_dir: null  # output of controlnet_dataset_builder.py
+
+# SDXL base model checkpoint (single-file .safetensors) OR a diffusers directory
+base_model_path: "/mnt/c/ai_models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors"
+
+# Local SDXL base repo (tokenizers/text encoders + scheduler) for offline runs
+base_repo_path: "/mnt/c/ai_models/stable-diffusion/stable-diffusion-xl-base-1.0"
+
+# Optional: initialize ControlNet from an existing ControlNet directory
+# init_controlnet_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-canny-sdxl"
+init_controlnet_path: null
+
+output_dir: "outputs/controlnet_training"
+output_name: "my_controlnet"
+
+resolution: 1024
+train_batch_size: 1
+gradient_accumulation_steps: 1
+learning_rate: 1.0e-5
+max_train_steps: 1000
+save_steps: 500
+max_grad_norm: 1.0
+mixed_precision: "fp16"  # "no" | "fp16" | "bf16"
+seed: 42
+num_workers: 0
+enable_gradient_checkpointing: true
+log_level: "INFO"
+
