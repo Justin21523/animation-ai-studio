@@ -36,6 +36,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -200,7 +201,7 @@ class LLMDecisionEngine:
 
         # Parse LLM response into EditPlan
         plan = self._parse_edit_plan(
-            response["content"],
+            extract_text_from_chat_response(response),
             video_path,
             goal,
             analysis_results
@@ -458,11 +459,11 @@ Respond ONLY with valid JSON.
         )
 
         try:
-            evaluation = json.loads(response["content"])
+            evaluation = parse_json_from_markdown(extract_text_from_chat_response(response))
             logger.info(f"Quality score: {evaluation.get('overall_quality_score', 0):.3f}")
             return evaluation
 
-        except json.JSONDecodeError as e:
+        except Exception as e:
             logger.error(f"Failed to parse evaluation: {e}")
             return {
                 "overall_quality_score": 0.5,
@@ -541,7 +542,7 @@ Respond ONLY with valid JSON.
         )
 
         try:
-            improvements = json.loads(response["content"])
+            improvements = parse_json_from_markdown(extract_text_from_chat_response(response))
             new_decisions = []
 
             for dec_data in improvements.get("new_decisions", []):
@@ -559,7 +560,7 @@ Respond ONLY with valid JSON.
             logger.info(f"Suggested {len(new_decisions)} improvements")
             return new_decisions
 
-        except json.JSONDecodeError as e:
+        except Exception as e:
             logger.error(f"Failed to parse improvements: {e}")
             return []
 

@@ -3,7 +3,8 @@
 
 # Model paths (AI Warehouse)
 model:
-  base_model: "/mnt/c/AI_LLM_projects/ai_warehouse/models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors"
+  base_model: "/mnt/c/ai_models/stable-diffusion/checkpoints/sd_xl_base_1.0.safetensors"
+  base_model_repo: "/mnt/c/ai_models/stable-diffusion/stable-diffusion-xl-base-1.0"  # Local HF repo (tokenizers/text encoders)
   refiner_model: null  # Optional refiner (requires additional VRAM)
   variant: "fp16"  # fp16 for VRAM efficiency
 

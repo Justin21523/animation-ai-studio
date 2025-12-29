@@ -150,6 +150,50 @@ def parse_json_from_markdown(text: str) -> dict:
     return json.loads(json_str)
 
 
+def extract_text_from_chat_response(response: Any) -> str:
+    """
+    Extract assistant text from an OpenAI-compatible chat completion response.
+
+    Supports the common formats returned by vLLM/OpenAI-style gateways:
+    - {"choices":[{"message":{"content":"..."}}], ...}
+    - {"choices":[{"text":"..."}], ...}
+    - {"content":"..."}  (legacy convenience format)
+    """
+    if response is None:
+        return ""
+
+    if isinstance(response, str):
+        return response
+
+    if not isinstance(response, dict):
+        return str(response)
+
+    content = response.get("content")
+    if isinstance(content, str):
+        return content
+
+    choices = response.get("choices")
+    if isinstance(choices, list) and choices:
+        first = choices[0]
+        if isinstance(first, dict):
+            message = first.get("message")
+            if isinstance(message, dict) and isinstance(message.get("content"), str):
+                return message["content"]
+            if isinstance(first.get("text"), str):
+                return first["text"]
+            delta = first.get("delta")
+            if isinstance(delta, dict) and isinstance(delta.get("content"), str):
+                return delta["content"]
+
+    # Best-effort fallback: stringify.
+    try:
+        import json
+
+        return json.dumps(response, ensure_ascii=False)
+    except Exception:
+        return str(response)
+
+
 def extract_code_from_markdown(text: str, language: str = "python") -> str:
     """
     Extract code from markdown code block

@@ -20,6 +20,21 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+def _resolve_default_model(model: str) -> str:
+    default_hf = "sentence-transformers/all-MiniLM-L6-v2"
+    if str(model) != default_hf:
+        return str(model)
+
+    candidates = [
+        Path("/mnt/c/ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+        Path("ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+        Path("models/sentence_transformers/all-MiniLM-L6-v2"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    return default_hf
+
 
 @dataclass
 class EmbeddingConfig:
@@ -67,8 +82,9 @@ class EmbeddingGenerator:
                 "sentence-transformers not installed. Install with: pip install sentence-transformers"
             ) from e
 
-        logger.info(f"Loading embedding model: {self.config.model} (device={self.config.device})")
-        self._model = SentenceTransformer(self.config.model, device=self.config.device)
+        model_name = _resolve_default_model(self.config.model)
+        logger.info(f"Loading embedding model: {model_name} (device={self.config.device})")
+        self._model = SentenceTransformer(model_name, device=self.config.device)
 
         # Apply max length if supported.
         try:
@@ -194,4 +210,3 @@ class CachedEmbeddingGenerator(EmbeddingGenerator):
         for cache_file in self.cache_dir.glob("*.npy"):
             cache_file.unlink()
         logger.info("Embedding cache cleared")
-

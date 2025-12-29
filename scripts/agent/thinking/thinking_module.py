@@ -21,6 +21,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 from scripts.agent.core.types import (
     Task,
     TaskType,
@@ -114,7 +115,7 @@ class ThinkingModule:
         )
 
         # Parse response
-        intent_analysis = self._parse_intent_response(response["content"])
+        intent_analysis = self._parse_intent_response(extract_text_from_chat_response(response))
 
         logger.info(f"Intent: {intent_analysis.primary_intent}, Type: {intent_analysis.task_type.value}")
         return intent_analysis
@@ -147,7 +148,7 @@ class ThinkingModule:
 
         # Parse response
         decomposition = self._parse_decomposition_response(
-            response["content"],
+            extract_text_from_chat_response(response),
             task_description,
             intent
         )
@@ -184,7 +185,7 @@ class ThinkingModule:
         )
 
         reflection = Thought(
-            content=response["content"],
+            content=extract_text_from_chat_response(response),
             thought_type="reflection",
             confidence=0.8
         )
@@ -224,7 +225,7 @@ Provide a user-friendly explanation (2-3 sentences):"""
             max_tokens=200
         )
 
-        return response["content"]
+        return extract_text_from_chat_response(response)
 
     def _build_intent_prompt(
         self,
@@ -258,7 +259,7 @@ Respond in JSON format:
         """Parse LLM response for intent"""
         try:
             # Try to parse JSON
-            data = json.loads(response)
+            data = parse_json_from_markdown(response)
 
             # Map task type string to enum
             task_type_str = data.get("task_type", "mixed").lower()
@@ -282,7 +283,7 @@ Respond in JSON format:
                 confidence=data.get("confidence", 0.7)
             )
 
-        except json.JSONDecodeError:
+        except Exception:
             # Fallback: basic parsing
             logger.warning("Failed to parse intent JSON, using fallback")
             return IntentAnalysis(
@@ -345,7 +346,7 @@ Respond in JSON format:
     ) -> TaskDecomposition:
         """Parse LLM response for task decomposition"""
         try:
-            data = json.loads(response)
+            data = parse_json_from_markdown(response)
 
             # Create main task
             task_type = intent.task_type if intent else TaskType.MIXED
@@ -383,7 +384,7 @@ Respond in JSON format:
                 estimated_time=total_time
             )
 
-        except json.JSONDecodeError:
+        except Exception:
             # Fallback: create single subtask
             logger.warning("Failed to parse decomposition JSON, using fallback")
             task_type = intent.task_type if intent else TaskType.MIXED

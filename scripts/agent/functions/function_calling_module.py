@@ -24,6 +24,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response
 from scripts.agent.core.types import ToolCall
 
 
@@ -327,7 +328,7 @@ class FunctionCallingModule:
         )
 
         # Parse function call
-        function_call = self._parse_function_call_response(response["content"])
+        function_call = self._parse_function_call_response(extract_text_from_chat_response(response))
 
         if function_call:
             logger.info(f"Selected function: {function_call['function']}")

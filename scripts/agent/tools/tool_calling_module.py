@@ -23,6 +23,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 from scripts.agent.core.types import ToolCall
 from scripts.agent.tools.tool_registry import (
     ToolRegistry,
@@ -123,7 +124,7 @@ class ToolCallingModule:
         )
 
         # Parse tool selections
-        selected_tools = self._parse_tool_selection_response(response["content"])
+        selected_tools = self._parse_tool_selection_response(extract_text_from_chat_response(response))
 
         logger.info(f"Selected {len(selected_tools)} tools for task")
         return selected_tools
@@ -290,7 +291,7 @@ Select tools:"""
     def _parse_tool_selection_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse LLM response into tool selections"""
         try:
-            data = json.loads(response)
+            data = parse_json_from_markdown(response)
             selected_tools = data.get("selected_tools", [])
 
             # Validate format
@@ -301,7 +302,7 @@ Select tools:"""
 
             return valid_tools
 
-        except json.JSONDecodeError:
+        except Exception:
             logger.warning("Failed to parse tool selection JSON")
             return []
 

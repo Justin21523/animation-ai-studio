@@ -29,6 +29,28 @@ from ..common import (
 logger = logging.getLogger(__name__)
 
 
+def _resolve_default_model(model_name: str) -> str:
+    """
+    Resolve a default SentenceTransformers model to a local path when available.
+
+    This keeps the KB Builder reproducible in restricted-network environments.
+    """
+    default_hf = "sentence-transformers/all-MiniLM-L6-v2"
+    if str(model_name) != default_hf:
+        return str(model_name)
+
+    candidates = [
+        Path("/mnt/c/ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+        Path("ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+        Path("models/sentence_transformers/all-MiniLM-L6-v2"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+
+    return default_hf
+
+
 class EmbeddingGenerator:
     """
     CPU-only embedding generator using Sentence Transformers
@@ -60,10 +82,18 @@ class EmbeddingGenerator:
                 "Install with: pip install sentence-transformers"
             )
 
-        # Load model
-        logger.info(f"Loading embedding model: {self.config.model_name}")
-        self.model = SentenceTransformer(self.config.model_name, device='cpu')
+        # Load model (prefer local path when available)
+        model_name = _resolve_default_model(self.config.model_name)
+        device = str(self.config.device or "cpu")
+        logger.info(f"Loading embedding model: {model_name} (device={device})")
+        self.model = SentenceTransformer(model_name, device=device)
         self.embedding_dim = self.model.get_sentence_embedding_dimension()
+
+        # Apply max length if supported.
+        try:
+            self.model.max_seq_length = int(self.config.max_seq_length)
+        except Exception:
+            pass
 
         logger.info(f"EmbeddingGenerator initialized: model={self.config.model_name}, "
                    f"dim={self.embedding_dim}, batch_size={self.config.batch_size}")
@@ -138,7 +168,7 @@ class EmbeddingGenerator:
         """
         embedding = self.model.encode(
             query,
-            normalize_embeddings=self.config.normalize,
+            normalize_embeddings=bool(self.config.normalize_embeddings),
             show_progress_bar=False
         )
 
@@ -157,8 +187,8 @@ class EmbeddingGenerator:
         embeddings = self.model.encode(
             texts,
             batch_size=self.config.batch_size,
-            normalize_embeddings=self.config.normalize,
-            show_progress_bar=True,
+            normalize_embeddings=bool(self.config.normalize_embeddings),
+            show_progress_bar=bool(self.config.show_progress),
             convert_to_numpy=True
         )
 

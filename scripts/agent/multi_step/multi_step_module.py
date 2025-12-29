@@ -27,6 +27,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 from scripts.agent.core.types import (
     Task,
     TaskStatus,
@@ -213,7 +214,7 @@ class MultiStepModule:
         )
 
         # Parse workflow plan
-        plan = self._parse_workflow_plan(response["content"], task)
+        plan = self._parse_workflow_plan(extract_text_from_chat_response(response), task)
 
         logger.info(f"Created workflow plan with {len(plan.steps)} steps")
 
@@ -435,7 +436,7 @@ Evaluation:"""
 
         # Parse quality check
         try:
-            data = json.loads(response["content"])
+            data = parse_json_from_markdown(extract_text_from_chat_response(response))
             score = float(data.get("score", 0.0))
             passed = score >= self.quality_threshold
 

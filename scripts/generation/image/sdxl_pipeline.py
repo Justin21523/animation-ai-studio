@@ -73,6 +73,7 @@ class SDXLPipelineManager:
     def __init__(
         self,
         model_path: str,
+        base_repo_path: Optional[str] = None,
         device: str = "cuda",
         dtype: torch.dtype = torch.float16,
         use_sdpa: bool = True,
@@ -86,6 +87,7 @@ class SDXLPipelineManager:
 
         Args:
             model_path: Path to SDXL base model
+            base_repo_path: Optional local SDXL base repo directory for tokenizers/text encoders
             device: Device to use (cuda/cpu)
             dtype: Model dtype (fp16 for VRAM efficiency)
             use_sdpa: Use PyTorch SDPA (CRITICAL: must be True)
@@ -95,6 +97,7 @@ class SDXLPipelineManager:
             variant: Model variant (fp16/fp32)
         """
         self.model_path = Path(model_path)
+        self.base_repo_path = Path(base_repo_path) if base_repo_path else None
         self.device = device
         self.dtype = dtype
         self.use_sdpa = use_sdpa
@@ -165,22 +168,27 @@ class SDXLPipelineManager:
                 from diffusers import AutoencoderKL
 
                 # Load tokenizers and text encoders from base SDXL (required for single-file loading)
-                print("Loading tokenizers and text encoders from base SDXL model...")
+                base_repo = (
+                    str(self.base_repo_path)
+                    if self.base_repo_path and self.base_repo_path.exists()
+                    else "stabilityai/stable-diffusion-xl-base-1.0"
+                )
+                print(f"Loading tokenizers and text encoders from base SDXL repo: {base_repo}")
                 tokenizer = CLIPTokenizer.from_pretrained(
-                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    base_repo,
                     subfolder="tokenizer"
                 )
                 tokenizer_2 = CLIPTokenizer.from_pretrained(
-                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    base_repo,
                     subfolder="tokenizer_2"
                 )
                 text_encoder = CLIPTextModel.from_pretrained(
-                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    base_repo,
                     subfolder="text_encoder",
                     torch_dtype=self.dtype
                 )
                 text_encoder_2 = CLIPTextModelWithProjection.from_pretrained(
-                    "stabilityai/stable-diffusion-xl-base-1.0",
+                    base_repo,
                     subfolder="text_encoder_2",
                     torch_dtype=self.dtype
                 )

@@ -48,6 +48,7 @@ from scripts.rag.retrieval.retrieval_engine import (
     RetrievalResult
 )
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response
 
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,18 @@ class KnowledgeBaseConfig:
     def __post_init__(self):
         if self.auto_ingest_dirs is None:
             self.auto_ingest_dirs = ["data/films", "docs"]
+
+        # Prefer a local SentenceTransformers model directory when available to avoid downloads.
+        if self.embedding_model == "sentence-transformers/all-MiniLM-L6-v2":
+            local_candidates = [
+                Path("/mnt/c/ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+                Path("ai_models/sentence_transformers/all-MiniLM-L6-v2"),
+                Path("models/sentence_transformers/all-MiniLM-L6-v2"),
+            ]
+            for candidate in local_candidates:
+                if candidate.exists():
+                    self.embedding_model = str(candidate)
+                    break
 
 
 class KnowledgeBase:
@@ -215,10 +228,6 @@ class KnowledgeBase:
             config=retrieval_config
         )
 
-        # Initialize LLM client
-        self.llm_client = LLMClient()
-        await self.llm_client.__aenter__()
-
         # Load stats
         await self._load_stats()
 
@@ -256,8 +265,22 @@ class KnowledgeBase:
 
         if self.llm_client:
             await self.llm_client.__aexit__(None, None, None)
+            self.llm_client = None
 
         logger.info("Knowledge Base cleanup complete")
+
+    async def _ensure_llm_client(self) -> LLMClient:
+        """
+        Lazily create/connect the LLM client.
+
+        RAG search/indexing should remain usable even when the LLM backend is not running.
+        """
+        if self.llm_client is not None:
+            return self.llm_client
+
+        self.llm_client = LLMClient()
+        await self.llm_client.__aenter__()
+        return self.llm_client
 
     async def add_document(
         self,
@@ -523,15 +546,20 @@ Question: {question}
 
 Answer: """
 
-        # Query LLM
-        response = await self.llm_client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            temperature=0.3
-        )
-
-        answer = response.get("content", "")
+        answer = ""
+        llm_error: Optional[str] = None
+        try:
+            llm = await self._ensure_llm_client()
+            response = await llm.chat(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=0.3,
+            )
+            answer = extract_text_from_chat_response(response).strip()
+        except Exception as e:
+            llm_error = str(e)
+            logger.warning(f"LLM answer generation failed: {e}")
 
         # Get sources
         sources = []
@@ -546,11 +574,14 @@ Answer: """
                 for doc in results.documents
             ]
 
-        return {
+        result: Dict[str, Any] = {
             "answer": answer,
             "sources": sources,
-            "confidence": "high" if sources else "low"
+            "confidence": "high" if (answer and sources) else ("medium" if sources else "low"),
         }
+        if llm_error:
+            result["error"] = llm_error
+        return result
 
     def get_stats(self) -> Dict[str, Any]:
         """Get knowledge base statistics"""

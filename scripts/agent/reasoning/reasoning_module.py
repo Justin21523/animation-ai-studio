@@ -25,6 +25,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response
 from scripts.agent.core.types import (
     Thought,
     ReasoningTrace,
@@ -105,7 +106,7 @@ class ReActReasoner:
             )
 
             # Parse response
-            reasoning_step = self._parse_react_response(response["content"], step_num)
+            reasoning_step = self._parse_react_response(extract_text_from_chat_response(response), step_num)
             steps.append(reasoning_step)
 
             # Add to trace
@@ -258,7 +259,7 @@ class ChainOfThoughtReasoner:
         )
 
         # Parse reasoning steps
-        steps = self._parse_cot_response(response["content"])
+        steps = self._parse_cot_response(extract_text_from_chat_response(response))
 
         for i, step in enumerate(steps, 1):
             trace.add_thought(
@@ -410,7 +411,7 @@ Provide {self.max_depth} reasoning steps (one per line):"""
             )
 
             # Parse steps
-            steps = [s.strip() for s in response["content"].split('\n') if s.strip()]
+            steps = [s.strip() for s in extract_text_from_chat_response(response).split('\n') if s.strip()]
             paths.append(steps[:self.max_depth])
 
         return paths
@@ -444,7 +445,7 @@ Which path is most likely to solve the task correctly? Respond with just the num
 
         # Parse selection
         try:
-            selected = int(response["content"].strip()) - 1
+            selected = int(extract_text_from_chat_response(response).strip()) - 1
             if 0 <= selected < len(paths):
                 return paths[selected]
         except:

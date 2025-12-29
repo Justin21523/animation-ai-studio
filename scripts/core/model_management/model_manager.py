@@ -343,6 +343,21 @@ class ModelManager:
                 "Update configs/generation/sdxl_config.yaml:model.base_model to a valid local path."
             )
 
+        base_repo_path = model_cfg.get("base_model_repo") or model_cfg.get("base_repo_path")
+        base_repo_p: Optional[Path] = None
+        if base_repo_path:
+            base_repo_p = Path(str(base_repo_path))
+            if not base_repo_p.exists():
+                raise FileNotFoundError(
+                    f"SDXL base repo not found: {base_repo_p}\n"
+                    "Update configs/generation/sdxl_config.yaml:model.base_model_repo to a valid local directory."
+                )
+        elif model_path_p.is_file():
+            # Best-effort: common warehouse layout
+            candidate = model_path_p.parent.parent / "stable-diffusion-xl-base-1.0"
+            if candidate.exists():
+                base_repo_p = candidate
+
         dtype_str = str(device_cfg.get("dtype", "float16")).lower()
         dtype = torch.float16 if dtype_str in ("float16", "fp16") else torch.float32
         device = str(device_cfg.get("device", "cuda"))
@@ -350,6 +365,7 @@ class ModelManager:
         logger.info("Loading SDXL pipeline...")
         self.sdxl_pipeline = SDXLPipelineManager(
             model_path=str(model_path_p),
+            base_repo_path=str(base_repo_p) if base_repo_p else None,
             device=device,
             dtype=dtype,
             use_sdpa=True,

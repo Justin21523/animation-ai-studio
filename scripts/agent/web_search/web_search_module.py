@@ -27,6 +27,7 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 
 
 logger = logging.getLogger(__name__)
@@ -450,7 +451,7 @@ Summary:"""
             max_tokens=800
         )
 
-        return response["content"]
+        return extract_text_from_chat_response(response)
 
     async def _rank_results(
         self,
@@ -499,7 +500,7 @@ Rankings:"""
             )
 
             # Parse rankings
-            data = json.loads(response["content"])
+            data = parse_json_from_markdown(extract_text_from_chat_response(response))
             rankings = data.get("rankings", list(range(1, len(results) + 1)))
 
             # Reorder results

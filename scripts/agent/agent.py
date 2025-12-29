@@ -21,6 +21,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.core.llm_client import LLMClient
+from scripts.core.llm_client.utils import extract_text_from_chat_response, parse_json_from_markdown
 from scripts.rag import KnowledgeBase, KnowledgeBaseConfig
 from scripts.agent.core.types import (
     Task,
@@ -557,7 +558,7 @@ Task type: {intent.task_type.value}
             max_tokens=self.config.max_tokens
         )
 
-        return response["content"]
+        return extract_text_from_chat_response(response)
 
     async def _check_if_needs_web_search(
         self,
@@ -605,8 +606,7 @@ Decision:"""
                 max_tokens=100
             )
 
-            import json
-            data = json.loads(response["content"])
+            data = parse_json_from_markdown(extract_text_from_chat_response(response))
             return data.get("needs_web_search", False)
 
         except Exception as e:
