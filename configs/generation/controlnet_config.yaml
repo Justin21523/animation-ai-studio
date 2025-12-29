@@ -5,31 +5,61 @@
 controlnet_models:
   pose:
     model_id: "diffusers/controlnet-openpose-sdxl-1.0"
-    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-openpose-sdxl-1.0"
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-openpose-sdxl"
     description: "OpenPose skeleton control"
     use_case: "Character pose control, consistent body positioning"
 
   canny:
     model_id: "diffusers/controlnet-canny-sdxl-1.0"
-    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-canny-sdxl-1.0"
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-canny-sdxl"
     description: "Canny edge detection control"
     use_case: "Scene composition, edge-based generation"
 
   depth:
     model_id: "diffusers/controlnet-depth-sdxl-1.0"
-    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-depth-sdxl-1.0"
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-depth-sdxl"
     description: "Depth map control"
     use_case: "3D scene depth, spatial relationships"
 
+  zoe_depth:
+    model_id: null  # Local model (if you want an HF id, set it here)
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-zoe-depth-sdxl"
+    description: "ZoeDepth-based depth control"
+    use_case: "Higher quality depth maps than MiDaS in many cases"
+
+  lineart:
+    model_id: null
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-lineart-sdxl"
+    description: "Lineart control"
+    use_case: "Anime/game-style line control, clean silhouettes"
+
+  scribble:
+    model_id: null
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-scribble-sdxl"
+    description: "Scribble control"
+    use_case: "Rough sketch → coherent asset generation"
+
+  softedge:
+    model_id: null
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-softedge-sdxl"
+    description: "Soft edge control"
+    use_case: "Soft contours for composition guidance"
+
+  tile:
+    model_id: null
+    local_path: "/mnt/c/ai_models/stable-diffusion/controlnet/controlnet-tile-sdxl"
+    description: "Tile control"
+    use_case: "Detail enhancement / tileable textures"
+
   seg:
     model_id: "diffusers/controlnet-seg-sdxl-1.0"
-    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-seg-sdxl-1.0"
+    local_path: null  # Optional: provide local model path when available
     description: "Segmentation map control"
     use_case: "Character/background separation, precise region control"
 
   normal:
     model_id: "diffusers/controlnet-normal-sdxl-1.0"
-    local_path: "/mnt/c/AI_LLM_projects/ai_warehouse/models/diffusion/controlnet/controlnet-normal-sdxl-1.0"
+    local_path: null  # Optional: provide local model path when available
     description: "Normal map control"
     use_case: "Surface detail, lighting consistency"
 
