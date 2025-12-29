@@ -16,6 +16,13 @@ images_dir: null
 output_dir: null
 control_type: null
 
+# Preprocessor settings
+controlnet_config_path: "configs/generation/controlnet_config.yaml"
+detect_resolution: 512
+prefer_local_models: true
+allow_download: false
+device: "cuda"
+
 # Optional: directory of precomputed control images (same stem as images)
 control_images_dir: null
 

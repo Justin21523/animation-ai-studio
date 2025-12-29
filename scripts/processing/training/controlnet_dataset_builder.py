@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 
 
 SUPPORTED_IMAGE_EXTS: Tuple[str, ...] = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
-COMPUTABLE_CONTROL_TYPES: Tuple[str, ...] = ("canny", "scribble", "softedge", "lineart")
 
 
 def _load_yaml(path: Optional[Path]) -> Dict[str, Any]:
@@ -95,47 +94,16 @@ def _resize_square(image: Image.Image, resolution: int) -> Image.Image:
     return image.resize((resolution, resolution), Image.LANCZOS)
 
 
-def _compute_control_image(
-    *,
-    control_type: str,
-    image_rgb: Image.Image,
-    canny_low_threshold: int,
-    canny_high_threshold: int,
-) -> Image.Image:
-    control_type = str(control_type).strip().lower()
-    if control_type not in COMPUTABLE_CONTROL_TYPES:
-        raise ValueError(f"control_type='{control_type}' is not computable; provide --control_images_dir instead")
-
-    try:
-        import cv2
-        import numpy as np
-    except ImportError as e:
-        raise ImportError("opencv-python is required to compute control images") from e
-
-    image_np = np.array(image_rgb)
-    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-
-    if control_type in ("canny", "lineart", "softedge", "scribble"):
-        if control_type == "softedge":
-            gray = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(gray, int(canny_low_threshold), int(canny_high_threshold))
-
-        if control_type in ("scribble",):
-            # Thicker "scribble" lines for rough guidance.
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-            edges = cv2.dilate(edges, kernel, iterations=1)
-
-        edges_rgb = np.stack([edges] * 3, axis=-1)
-        return Image.fromarray(edges_rgb)
-
-    raise ValueError(f"Unsupported computable control_type: {control_type}")
-
-
 @dataclass(frozen=True)
 class BuildConfig:
     images_dir: Path
     output_dir: Path
     control_type: str
+    controlnet_config_path: str = "configs/generation/controlnet_config.yaml"
+    detect_resolution: int = 512
+    prefer_local_models: bool = True
+    allow_download: bool = False
+    device: str = "cuda"
     control_images_dir: Optional[Path] = None
     captions_dir: Optional[Path] = None
     resolution: int = 1024
@@ -146,6 +114,12 @@ class BuildConfig:
 
 
 def build_dataset(config: BuildConfig) -> Dict[str, Any]:
+    from scripts.processing.controlnet.preprocessors import (
+        ControlNetPreprocessorFactory,
+        PreprocessorContext,
+        resolve_detect_resolution,
+    )
+
     images_dir = Path(config.images_dir)
     output_dir = Path(config.output_dir)
 
@@ -175,6 +149,20 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
     computed = 0
     skipped = 0
 
+    detect_resolution = int(config.detect_resolution) if config.detect_resolution else resolve_detect_resolution(
+        config.controlnet_config_path, fallback=512
+    )
+    preprocessor_factory = ControlNetPreprocessorFactory(
+        PreprocessorContext(
+            controlnet_config_path=str(config.controlnet_config_path),
+            prefer_local_models=bool(config.prefer_local_models),
+            allow_download=bool(config.allow_download),
+            device=str(config.device),
+            canny_low_threshold=int(config.canny_low_threshold),
+            canny_high_threshold=int(config.canny_high_threshold),
+        )
+    )
+
     for idx, src_image_path in enumerate(tqdm(image_files, desc="Building ControlNet dataset")):
         try:
             with Image.open(src_image_path) as img:
@@ -195,11 +183,11 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
                     control_rgb = _ensure_rgb(cimg)
                     control_rgb = _resize_square(control_rgb, int(config.resolution))
             else:
-                control_rgb = _compute_control_image(
-                    control_type=config.control_type,
-                    image_rgb=img_rgb,
-                    canny_low_threshold=config.canny_low_threshold,
-                    canny_high_threshold=config.canny_high_threshold,
+                preprocessor = preprocessor_factory.get(str(config.control_type))
+                control_rgb = preprocessor(
+                    img_rgb,
+                    detect_resolution=int(detect_resolution),
+                    image_resolution=int(config.resolution),
                 )
                 computed += 1
 
@@ -256,6 +244,23 @@ def _build_parser(defaults: Dict[str, Any]) -> argparse.ArgumentParser:
     parser.add_argument("--images_dir", type=Path, required=defaults.get("images_dir") is None)
     parser.add_argument("--output_dir", type=Path, required=defaults.get("output_dir") is None)
     parser.add_argument("--control_type", type=str, required=defaults.get("control_type") is None)
+    parser.add_argument(
+        "--controlnet_config_path",
+        type=str,
+        default=str(defaults.get("controlnet_config_path", "configs/generation/controlnet_config.yaml")),
+    )
+    parser.add_argument("--detect_resolution", type=int, default=int(defaults.get("detect_resolution", 512)))
+    parser.add_argument(
+        "--prefer_local_models",
+        action=argparse.BooleanOptionalAction,
+        default=bool(defaults.get("prefer_local_models", True)),
+    )
+    parser.add_argument(
+        "--allow_download",
+        action=argparse.BooleanOptionalAction,
+        default=bool(defaults.get("allow_download", False)),
+    )
+    parser.add_argument("--device", type=str, default=str(defaults.get("device", "cuda")))
     parser.add_argument("--control_images_dir", type=Path, default=defaults.get("control_images_dir"))
     parser.add_argument("--captions_dir", type=Path, default=defaults.get("captions_dir"))
 
@@ -285,6 +290,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         images_dir=Path(args.images_dir or defaults.get("images_dir")),
         output_dir=Path(args.output_dir or defaults.get("output_dir")),
         control_type=str(args.control_type or defaults.get("control_type")),
+        controlnet_config_path=str(args.controlnet_config_path),
+        detect_resolution=int(args.detect_resolution),
+        prefer_local_models=bool(args.prefer_local_models),
+        allow_download=bool(args.allow_download),
+        device=str(args.device),
         control_images_dir=Path(args.control_images_dir) if args.control_images_dir else None,
         captions_dir=Path(args.captions_dir) if args.captions_dir else None,
         resolution=int(args.resolution),

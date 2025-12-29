@@ -104,14 +104,19 @@ preprocessing:
   pose:
     # Note: OpenPose preprocessing requires controlnet_aux package
     # Install with: pip install controlnet_aux
+    backend: "controlnet_aux"
+    model_id: "lllyasviel/ControlNet"
+    local_path: null  # Optional: local model dir to avoid downloads
     body: true
     hand: false  # Disable for faster processing
     face: false  # Disable for faster processing
 
   depth:
-    # Note: Depth estimation requires transformers package
-    # Install with: pip install transformers
-    model: "Intel/dpt-hybrid-midas"  # Depth estimation model
+    # Note: Depth estimation requires transformers package (and often timm)
+    backend: "transformers"
+    model_id: "Intel/dpt-hybrid-midas"  # Example model id (prefer using local_path for reproducibility)
+    local_path: null  # Optional: local HF snapshot/repo dir to avoid downloads
+    device: "cuda"
 
 # VRAM considerations
 vram:
