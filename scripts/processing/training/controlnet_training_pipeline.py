@@ -107,13 +107,44 @@ def _ensure_dir(path: Path) -> Path:
     return path
 
 
+def _resolve_registry_local_path(controlnet_config_path: Path, key: str) -> Optional[str]:
+    """
+    Resolve a local ControlNet directory from the registry.
+
+    This is useful for initializing training from an existing ControlNet of the same type.
+    """
+    key = str(key).strip()
+    if not key:
+        return None
+
+    cfg = _load_yaml(controlnet_config_path)
+    models = cfg.get("controlnet_models") or {}
+    if not isinstance(models, dict):
+        return None
+
+    entry = models.get(key) or {}
+    if not isinstance(entry, dict):
+        return None
+
+    local_path = entry.get("local_path")
+    if not local_path:
+        return None
+
+    p = Path(str(local_path))
+    return str(p) if p.exists() else None
+
+
 def validate_pipeline(config: PipelineConfig) -> Dict[str, Any]:
     """
     Validate config + dependencies without writing outputs or training.
 
     Intended for "only images → train" automation preflight checks.
     """
-    from scripts.processing.controlnet.preprocessors import ControlNetPreprocessorFactory, PreprocessorContext, resolve_preprocess_as
+    from scripts.processing.controlnet.preprocessors import (
+        ControlNetPreprocessorFactory,
+        PreprocessorContext,
+        resolve_preprocess_as,
+    )
 
     images_dir = Path(config.images_dir)
     if not images_dir.exists():
@@ -176,6 +207,12 @@ def validate_pipeline(config: PipelineConfig) -> Dict[str, Any]:
         )
         preprocessor_info = factory.validate(str(preprocess_type))
 
+    init_controlnet_resolved = None
+    if not trainer_cfg.get("init_controlnet_path"):
+        init_controlnet_resolved = _resolve_registry_local_path(controlnet_config_path, preprocess_type or "")
+        if init_controlnet_resolved is None:
+            init_controlnet_resolved = _resolve_registry_local_path(controlnet_config_path, str(config.control_type))
+
     return {
         "dry_run": True,
         "images_dir": str(images_dir),
@@ -188,13 +225,32 @@ def validate_pipeline(config: PipelineConfig) -> Dict[str, Any]:
         "trainer_output_name": str(trainer_cfg.get("output_name")),
         "base_model_path": str(base_model_path),
         "base_repo_path": str(base_repo_path) if base_repo_path else None,
+        "init_controlnet_path": str(trainer_cfg.get("init_controlnet_path")) if trainer_cfg.get("init_controlnet_path") else None,
+        "init_controlnet_resolved": init_controlnet_resolved,
     }
+
+
+def _maybe_resolve_init_controlnet(
+    *,
+    trainer_cfg: Dict[str, Any],
+    controlnet_config_path: Path,
+    control_type: str,
+    preprocess_type: str,
+) -> Optional[str]:
+    if trainer_cfg.get("init_controlnet_path"):
+        return str(trainer_cfg.get("init_controlnet_path"))
+
+    resolved = _resolve_registry_local_path(controlnet_config_path, preprocess_type)
+    if resolved is not None:
+        return resolved
+    return _resolve_registry_local_path(controlnet_config_path, control_type)
 
 
 def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
     from scripts.processing.training.controlnet_dataset_builder import BuildConfig, build_dataset
     from scripts.processing.training.sdxl_controlnet_trainer import TrainConfig, train
     from scripts.processing.training.controlnet_registry_updater import upsert_controlnet_entry
+    from scripts.processing.controlnet.preprocessors import resolve_preprocess_as
 
     if not _is_main_process():
         raise RuntimeError(
@@ -211,6 +267,8 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
         raise ValueError(f"Empty trainer config: {config.trainer_config_path}")
 
     trainer_output_name = str(trainer_cfg.get("output_name") or "").strip() or "controlnet_model"
+
+    preprocess_type = resolve_preprocess_as(str(config.controlnet_config_path), str(config.control_type))
 
     dataset_output_root = _ensure_dir(Path(config.dataset_output_dir))
     dataset_name = config.dataset_name or config.controlnet_key or trainer_output_name
@@ -238,6 +296,12 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
     # Fill dataset_dir in trainer config (without mutating the file on disk).
     trainer_cfg = dict(trainer_cfg)
     trainer_cfg["dataset_dir"] = str(dataset_dir)
+    init_controlnet_path = _maybe_resolve_init_controlnet(
+        trainer_cfg=trainer_cfg,
+        controlnet_config_path=Path(config.controlnet_config_path),
+        control_type=str(config.control_type),
+        preprocess_type=str(preprocess_type),
+    )
 
     train_cfg = TrainConfig(
         dataset_dir=Path(trainer_cfg["dataset_dir"]),
@@ -246,7 +310,7 @@ def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
         output_dir=Path(trainer_cfg["output_dir"]),
         output_name=str(trainer_cfg["output_name"]),
         resolution=int(trainer_cfg.get("resolution", config.resolution)),
-        init_controlnet_path=str(trainer_cfg.get("init_controlnet_path")) if trainer_cfg.get("init_controlnet_path") else None,
+        init_controlnet_path=str(init_controlnet_path) if init_controlnet_path else None,
         train_batch_size=int(trainer_cfg.get("train_batch_size", 1)),
         gradient_accumulation_steps=int(trainer_cfg.get("gradient_accumulation_steps", 1)),
         learning_rate=float(trainer_cfg.get("learning_rate", 1e-5)),

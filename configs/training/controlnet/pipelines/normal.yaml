@@ -1,0 +1,27 @@
+# SDXL ControlNet training pipeline (normal) - template
+#
+# Notes:
+# - Default normal map preprocessor derives normals from the depth preprocessor.
+#
+# Run:
+#   python scripts/processing/training/controlnet_training_pipeline.py --config configs/training/controlnet/pipelines/normal.yaml
+
+images_dir: null
+captions_dir: null
+control_images_dir: null
+default_caption: ""
+
+control_type: "normal"
+detect_resolution: 512
+resolution: 1024
+
+dataset_name: "normal_v1"
+controlnet_key: "normal_v1"
+preprocess_as: "normal"
+description: "Normal-map ControlNet fine-tune v1"
+use_case: "Surface normal conditioning (lighting/material consistency)"
+
+controlnet_config_path: "configs/generation/controlnet_config.yaml"
+trainer_config_path: "configs/training/controlnet/trainer.yaml"
+registry_path: "configs/generation/controlnet_config.yaml"
+

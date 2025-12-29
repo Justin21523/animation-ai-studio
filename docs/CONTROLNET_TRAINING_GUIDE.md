@@ -154,6 +154,9 @@ outputs/controlnet_training/<output_name>/final/
 
 這個 `final/` 目錄就是可被 diffusers `ControlNetModel.from_pretrained()` 載入的格式。
 
+> 建議：訓練時盡量用「同類型的預訓練 ControlNet」作為初始化（`init_controlnet_path`），做 fine-tune 會穩定很多。  
+> 若你使用第 5 節的一鍵 pipeline，且 `trainer.yaml` 的 `init_controlnet_path` 是 `null`，pipeline 會嘗試自動從 `configs/generation/controlnet_config.yaml` 找到同類型的 `controlnet_models.<type>.local_path` 來初始化。
+
 ---
 
 ## 3) 訓練完成 → 自動更新 registry（讓生成/agent 直接可用）
@@ -215,6 +218,19 @@ python scripts/processing/training/controlnet_training_pipeline.py \
 - dataset: `outputs/controlnet_datasets/<dataset_name>/`
 - training: `outputs/controlnet_training/<output_name>/final/`
 - registry upsert: `configs/generation/controlnet_config.yaml`
+
+另外也提供「各 control_type 一份」的模板（只要改 `images_dir` 即可）：
+
+- `configs/training/controlnet/pipelines/canny.yaml`
+- `configs/training/controlnet/pipelines/pose.yaml`
+- `configs/training/controlnet/pipelines/depth.yaml`
+- `configs/training/controlnet/pipelines/zoe_depth.yaml`
+- `configs/training/controlnet/pipelines/seg.yaml`
+- `configs/training/controlnet/pipelines/normal.yaml`
+- `configs/training/controlnet/pipelines/tile.yaml`
+- `configs/training/controlnet/pipelines/lineart.yaml`
+- `configs/training/controlnet/pipelines/scribble.yaml`
+- `configs/training/controlnet/pipelines/softedge.yaml`
 
 ## ⚠️ 備註（重要）
 
