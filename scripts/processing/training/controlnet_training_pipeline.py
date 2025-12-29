@@ -25,6 +25,8 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+SUPPORTED_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
+
 
 def _load_yaml(path: Optional[Path]) -> Dict[str, Any]:
     if not path:
@@ -37,6 +39,24 @@ def _load_yaml(path: Optional[Path]) -> Dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError("Config must be a YAML mapping (dict)")
     return data
+
+
+def _iter_images(images_dir: Path) -> Sequence[Path]:
+    images_dir = Path(images_dir)
+    files = []
+    for ext in SUPPORTED_IMAGE_EXTS:
+        files.extend(images_dir.glob(f"*{ext}"))
+        files.extend(images_dir.glob(f"*{ext.upper()}"))
+    return sorted({p.resolve() for p in files if p.is_file()})
+
+
+def _find_matching_file(stem: str, directory: Path) -> Optional[Path]:
+    directory = Path(directory)
+    for ext in SUPPORTED_IMAGE_EXTS:
+        for cand in (directory / f"{stem}{ext}", directory / f"{stem}{ext.upper()}"):
+            if cand.exists():
+                return cand
+    return None
 
 
 def _is_main_process() -> bool:
@@ -85,6 +105,90 @@ def _ensure_dir(path: Path) -> Path:
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def validate_pipeline(config: PipelineConfig) -> Dict[str, Any]:
+    """
+    Validate config + dependencies without writing outputs or training.
+
+    Intended for "only images → train" automation preflight checks.
+    """
+    from scripts.processing.controlnet.preprocessors import ControlNetPreprocessorFactory, PreprocessorContext, resolve_preprocess_as
+
+    images_dir = Path(config.images_dir)
+    if not images_dir.exists():
+        raise FileNotFoundError(f"images_dir not found: {images_dir}")
+
+    controlnet_config_path = Path(config.controlnet_config_path)
+    if not controlnet_config_path.exists():
+        raise FileNotFoundError(f"controlnet_config_path not found: {controlnet_config_path}")
+
+    image_files = list(_iter_images(images_dir))
+    if not image_files:
+        raise FileNotFoundError(f"No images found in {images_dir} (supported: {', '.join(SUPPORTED_IMAGE_EXTS)})")
+
+    trainer_cfg = _load_yaml(config.trainer_config_path)
+    if not trainer_cfg:
+        raise ValueError(f"Empty trainer config: {config.trainer_config_path}")
+
+    missing_keys = [k for k in ("base_model_path", "output_dir", "output_name") if not trainer_cfg.get(k)]
+    if missing_keys:
+        raise ValueError(f"trainer config missing required keys: {', '.join(missing_keys)}")
+
+    base_model_path = Path(str(trainer_cfg["base_model_path"]))
+    if not base_model_path.exists():
+        raise FileNotFoundError(f"base_model_path not found: {base_model_path}")
+
+    base_repo_path = trainer_cfg.get("base_repo_path")
+    if base_model_path.is_file():
+        if not base_repo_path or not Path(str(base_repo_path)).exists():
+            raise FileNotFoundError(
+                "Single-file SDXL checkpoints require a local base_repo_path (tokenizers/text encoders/scheduler), "
+                f"but got base_repo_path={base_repo_path!r}"
+            )
+
+    control_images_dir = Path(config.control_images_dir) if config.control_images_dir else None
+    if control_images_dir:
+        if not control_images_dir.exists():
+            raise FileNotFoundError(f"control_images_dir not found: {control_images_dir}")
+        missing_controls = []
+        for img in image_files:
+            if not _find_matching_file(img.stem, control_images_dir):
+                missing_controls.append(img.name)
+                if len(missing_controls) >= 20:
+                    break
+        if missing_controls:
+            raise FileNotFoundError(
+                "Missing control images for some targets in control_images_dir. "
+                f"Examples: {', '.join(missing_controls[:5])}"
+            )
+        preprocessor_info: Optional[Dict[str, Any]] = None
+        preprocess_type = None
+    else:
+        preprocess_type = resolve_preprocess_as(str(controlnet_config_path), str(config.control_type))
+        factory = ControlNetPreprocessorFactory(
+            PreprocessorContext(
+                controlnet_config_path=str(controlnet_config_path),
+                prefer_local_models=bool(config.prefer_local_models),
+                allow_download=bool(config.allow_download),
+                device=str(config.device),
+            )
+        )
+        preprocessor_info = factory.validate(str(preprocess_type))
+
+    return {
+        "dry_run": True,
+        "images_dir": str(images_dir),
+        "images_found": len(image_files),
+        "control_type": str(config.control_type),
+        "control_images_dir": str(control_images_dir) if control_images_dir else None,
+        "preprocess_type": str(preprocess_type) if preprocess_type else None,
+        "preprocessor": preprocessor_info,
+        "trainer_config_path": str(config.trainer_config_path),
+        "trainer_output_name": str(trainer_cfg.get("output_name")),
+        "base_model_path": str(base_model_path),
+        "base_repo_path": str(base_repo_path) if base_repo_path else None,
+    }
 
 
 def run_pipeline(config: PipelineConfig) -> Dict[str, Any]:
@@ -195,6 +299,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--control_type", type=str, default=None)
     p.add_argument("--trainer_config_path", type=Path, default=None)
     p.add_argument("--controlnet_key", type=str, default=None)
+    p.add_argument("--dry-run", action="store_true", default=False, help="Validate config/deps without training")
 
     p.add_argument("--log_level", type=str, default="INFO")
     return p
@@ -240,6 +345,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         stage_move=bool(raw.get("stage_move", False)),
         stage_overwrite=bool(raw.get("stage_overwrite", False)),
     )
+
+    if args.dry_run:
+        result = validate_pipeline(pipeline_cfg)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
 
     result = run_pipeline(pipeline_cfg)
     print(json.dumps(result, ensure_ascii=False, indent=2))

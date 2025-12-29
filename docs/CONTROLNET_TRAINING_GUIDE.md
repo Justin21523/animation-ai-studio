@@ -202,6 +202,14 @@ python scripts/processing/training/controlnet_training_pipeline.py \
   --config configs/training/controlnet/pipeline.yaml
 ```
 
+（可選）先做前置檢查（不產生資料、不訓練）：
+
+```bash
+python scripts/processing/training/controlnet_training_pipeline.py \
+  --config configs/training/controlnet/pipeline.yaml \
+  --dry-run
+```
+
 這會自動完成：
 
 - dataset: `outputs/controlnet_datasets/<dataset_name>/`

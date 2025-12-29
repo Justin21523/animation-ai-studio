@@ -65,6 +65,24 @@ def _find_cached_snapshot(model_id: str) -> Optional[Path]:
     return candidates[0]
 
 
+def _resolve_model_source(
+    *,
+    model_id: Optional[str],
+    local_path: Optional[str],
+    prefer_local_models: bool,
+    allow_download: bool,
+) -> Optional[str]:
+    if prefer_local_models and local_path and Path(str(local_path)).exists():
+        return str(local_path)
+    if prefer_local_models and model_id:
+        cached = _find_cached_snapshot(str(model_id))
+        if cached and cached.exists():
+            return str(cached)
+    if model_id and allow_download:
+        return str(model_id)
+    return None
+
+
 @dataclass(frozen=True)
 class PreprocessorContext:
     controlnet_config_path: str = "configs/generation/controlnet_config.yaml"
@@ -324,15 +342,12 @@ class ControlNetPreprocessorFactory:
             local_path = pose_cfg.get("local_path")
             local_path = str(local_path) if local_path else None
 
-            model_source: Optional[str] = None
-            if self.context.prefer_local_models and local_path and Path(local_path).exists():
-                model_source = local_path
-            elif self.context.prefer_local_models and model_id:
-                cached = _find_cached_snapshot(str(model_id))
-                if cached and cached.exists():
-                    model_source = str(cached)
-            elif model_id and self.context.allow_download:
-                model_source = str(model_id)
+            model_source = _resolve_model_source(
+                model_id=str(model_id) if model_id else None,
+                local_path=local_path,
+                prefer_local_models=bool(self.context.prefer_local_models),
+                allow_download=bool(self.context.allow_download),
+            )
 
             if not model_source:
                 raise PreprocessorUnavailableError(
@@ -352,15 +367,12 @@ class ControlNetPreprocessorFactory:
             local_path = depth_cfg.get("local_path")
             local_path = str(local_path) if local_path else None
 
-            model_source: Optional[str] = None
-            if self.context.prefer_local_models and local_path and Path(local_path).exists():
-                model_source = local_path
-            elif self.context.prefer_local_models and model_id:
-                cached = _find_cached_snapshot(str(model_id))
-                if cached and cached.exists():
-                    model_source = str(cached)
-            elif model_id and self.context.allow_download:
-                model_source = str(model_id)
+            model_source = _resolve_model_source(
+                model_id=str(model_id) if model_id else None,
+                local_path=local_path,
+                prefer_local_models=bool(self.context.prefer_local_models),
+                allow_download=bool(self.context.allow_download),
+            )
 
             if not model_source:
                 raise PreprocessorUnavailableError(
@@ -387,6 +399,114 @@ class ControlNetPreprocessorFactory:
 
         self._cache[key] = pre
         return pre
+
+    def validate(self, preprocess_type: str) -> Dict[str, Any]:
+        """
+        Validate that a preprocessor can be constructed without actually loading model weights.
+
+        This is intended for pipeline "dry-run" checks in offline environments.
+        """
+        key = str(preprocess_type).strip().lower()
+        preprocessing_cfg = (self._cfg.get("preprocessing") or {}) if isinstance(self._cfg, dict) else {}
+
+        if key in ("canny", "scribble", "softedge", "lineart"):
+            try:
+                import cv2  # noqa: F401
+            except ImportError as e:
+                raise PreprocessorUnavailableError("opencv-python is required for canny-like preprocessors") from e
+            return {"preprocess_type": key, "backend": "opencv"}
+
+        if key == "tile":
+            return {"preprocess_type": key, "backend": "builtin"}
+
+        if key in ("pose", "openpose"):
+            try:
+                import controlnet_aux  # noqa: F401
+            except ImportError as e:
+                raise PreprocessorUnavailableError(
+                    "controlnet_aux is required for OpenPose preprocessing. Install with: pip install controlnet-aux"
+                ) from e
+
+            pose_cfg = preprocessing_cfg.get("pose") or {}
+            model_id = pose_cfg.get("model_id") or pose_cfg.get("model") or "lllyasviel/ControlNet"
+            local_path = pose_cfg.get("local_path")
+            model_source = _resolve_model_source(
+                model_id=str(model_id) if model_id else None,
+                local_path=str(local_path) if local_path else None,
+                prefer_local_models=bool(self.context.prefer_local_models),
+                allow_download=bool(self.context.allow_download),
+            )
+            if not model_source:
+                raise PreprocessorUnavailableError(
+                    "OpenPose preprocessor requires a local model. "
+                    "Set `preprocessing.pose.local_path` in configs/generation/controlnet_config.yaml "
+                    "or run with --allow_download."
+                )
+            return {"preprocess_type": "pose", "backend": "controlnet_aux", "model_source": model_source}
+
+        if key in ("depth", "zoe_depth"):
+            try:
+                import torch  # noqa: F401
+                import transformers  # noqa: F401
+            except ImportError as e:
+                raise PreprocessorUnavailableError(
+                    "Depth preprocessing requires torch + transformers. Install with: pip install transformers"
+                ) from e
+
+            depth_cfg = preprocessing_cfg.get("depth") or {}
+            model_id = depth_cfg.get("model_id") or depth_cfg.get("model") or "Intel/dpt-hybrid-midas"
+            local_path = depth_cfg.get("local_path")
+            model_source = _resolve_model_source(
+                model_id=str(model_id) if model_id else None,
+                local_path=str(local_path) if local_path else None,
+                prefer_local_models=bool(self.context.prefer_local_models),
+                allow_download=bool(self.context.allow_download),
+            )
+            if not model_source:
+                raise PreprocessorUnavailableError(
+                    "Depth preprocessor requires a local model. "
+                    "Set `preprocessing.depth.local_path` in configs/generation/controlnet_config.yaml "
+                    "or run with --allow_download."
+                )
+
+            # Mirror device selection logic (without initializing the model).
+            resolved_device = str(depth_cfg.get("device") or self.context.device)
+            try:
+                import torch
+
+                if resolved_device == "cuda" and not torch.cuda.is_available():
+                    resolved_device = "cpu"
+            except Exception:
+                pass
+
+            return {
+                "preprocess_type": "depth" if key == "depth" else key,
+                "backend": "transformers",
+                "model_source": model_source,
+                "device": resolved_device,
+            }
+
+        if key in ("seg", "segmentation"):
+            seg_cfg = preprocessing_cfg.get("seg") or preprocessing_cfg.get("segmentation") or {}
+            backend = str(seg_cfg.get("backend") or "rembg")
+            if backend != "rembg":
+                raise PreprocessorUnavailableError(f"Unsupported seg backend: {backend}")
+            try:
+                os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+                import rembg  # noqa: F401
+            except ImportError as e:
+                raise PreprocessorUnavailableError(
+                    "rembg is required for segmentation preprocessing. Install with: pip install rembg"
+                ) from e
+
+            model_name = seg_cfg.get("model") or "isnet-general-use"
+            return {"preprocess_type": "seg", "backend": "rembg", "model": str(model_name)}
+
+        if key in ("normal", "normal_map"):
+            depth_info = self.validate("depth")
+            return {"preprocess_type": "normal", "backend": "from_depth", "depth": depth_info}
+
+        raise PreprocessorUnavailableError(f"Unknown preprocess_type: {preprocess_type}")
 
 
 def resolve_detect_resolution(controlnet_config_path: str, fallback: int = 512) -> int:
