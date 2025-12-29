@@ -97,6 +97,32 @@ class TilePreprocessor(ControlImagePreprocessor):
         return image.convert("RGB").resize((int(image_resolution), int(image_resolution)), Image.LANCZOS)
 
 
+class OpenPosePreprocessor(ControlImagePreprocessor):
+    def __init__(
+        self,
+        *,
+        model_source: str,
+        hand_and_face: bool = False,
+    ):
+        try:
+            from controlnet_aux import OpenposeDetector
+        except ImportError as e:
+            raise PreprocessorUnavailableError(
+                "controlnet_aux is required for OpenPose preprocessing. Install with: pip install controlnet-aux"
+            ) from e
+
+        self._detector = OpenposeDetector.from_pretrained(model_source)
+        self._hand_and_face = bool(hand_and_face)
+
+    def __call__(self, image: Image.Image, *, detect_resolution: int, image_resolution: int) -> Image.Image:
+        return self._detector(
+            image.convert("RGB"),
+            hand_and_face=self._hand_and_face,
+            detect_resolution=int(detect_resolution),
+            image_resolution=int(image_resolution),
+        )
+
+
 class ControlNetPreprocessorFactory:
     def __init__(self, context: PreprocessorContext):
         self.context = context
@@ -124,8 +150,28 @@ class ControlNetPreprocessorFactory:
         elif key == "tile":
             pre = TilePreprocessor()
         elif key in ("pose", "openpose"):
-            raise PreprocessorUnavailableError(
-                "pose/openpose preprocessor not enabled yet (requires controlnet_aux)."
+            pose_cfg = preprocessing_cfg.get("pose") or {}
+            model_id = pose_cfg.get("model_id") or pose_cfg.get("model") or "lllyasviel/ControlNet"
+            local_path = pose_cfg.get("local_path")
+            local_path = str(local_path) if local_path else None
+
+            model_source: Optional[str] = None
+            if self.context.prefer_local_models and local_path and Path(local_path).exists():
+                model_source = local_path
+            elif model_id and self.context.allow_download:
+                model_source = str(model_id)
+
+            if not model_source:
+                raise PreprocessorUnavailableError(
+                    "OpenPose preprocessor requires a local model. "
+                    "Set `preprocessing.pose.local_path` in configs/generation/controlnet_config.yaml "
+                    "or run with --allow_download."
+                )
+
+            hand_and_face = _coerce_bool(pose_cfg.get("hand"), False) or _coerce_bool(pose_cfg.get("face"), False)
+            pre = OpenPosePreprocessor(
+                model_source=model_source,
+                hand_and_face=hand_and_face,
             )
         elif key in ("depth", "zoe_depth"):
             raise PreprocessorUnavailableError(

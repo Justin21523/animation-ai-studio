@@ -40,6 +40,8 @@ transformers>=4.35.0
 accelerate>=0.24.0
 # Image processing
 Pillow>=10.0.0
+# ControlNet preprocessors (OpenPose, etc.)
+controlnet-aux>=0.0.7
 # Face recognition for consistency
 insightface>=0.7.3
 onnxruntime>=1.16.0

@@ -103,7 +103,7 @@ preprocessing:
 
   pose:
     # Note: OpenPose preprocessing requires controlnet_aux package
-    # Install with: pip install controlnet_aux
+    # Install with: pip install controlnet-aux
     backend: "controlnet_aux"
     model_id: "lllyasviel/ControlNet"
     local_path: null  # Optional: local model dir to avoid downloads
