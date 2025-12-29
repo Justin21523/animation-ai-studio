@@ -117,6 +117,7 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
     from scripts.processing.controlnet.preprocessors import (
         ControlNetPreprocessorFactory,
         PreprocessorContext,
+        resolve_preprocess_as,
         resolve_detect_resolution,
     )
 
@@ -164,9 +165,10 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
     )
 
     preprocessor = None
+    preprocess_type = resolve_preprocess_as(str(config.controlnet_config_path), str(config.control_type))
     if not config.control_images_dir:
         # Fail fast for missing dependencies / missing local models.
-        preprocessor = preprocessor_factory.get(str(config.control_type))
+        preprocessor = preprocessor_factory.get(str(preprocess_type))
 
     for idx, src_image_path in enumerate(tqdm(image_files, desc="Building ControlNet dataset")):
         try:
@@ -220,6 +222,7 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
 
     meta = {
         "control_type": str(config.control_type),
+        "preprocess_type": str(preprocess_type),
         "resolution": int(config.resolution),
         "images_dir": str(images_dir),
         "control_images_dir": str(config.control_images_dir) if config.control_images_dir else None,

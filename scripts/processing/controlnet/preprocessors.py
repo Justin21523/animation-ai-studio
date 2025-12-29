@@ -360,3 +360,26 @@ def resolve_detect_resolution(controlnet_config_path: str, fallback: int = 512) 
     cfg = _load_yaml(controlnet_config_path)
     defaults_cfg = (cfg.get("defaults") or {}) if isinstance(cfg, dict) else {}
     return int(defaults_cfg.get("detection_resolution", fallback))
+
+
+def resolve_preprocess_as(controlnet_config_path: str, control_key: str) -> str:
+    """
+    Resolve preprocess type from the ControlNet registry.
+
+    Allows dataset building / inference to accept a custom registry key and still reuse
+    an existing preprocessor via `controlnet_models.<key>.preprocess_as`.
+    """
+    cfg = _load_yaml(controlnet_config_path)
+    if not isinstance(cfg, dict):
+        return str(control_key)
+
+    models_cfg = cfg.get("controlnet_models") or {}
+    if not isinstance(models_cfg, dict):
+        return str(control_key)
+
+    entry = models_cfg.get(str(control_key)) or {}
+    if not isinstance(entry, dict):
+        return str(control_key)
+
+    preprocess_as = entry.get("preprocess_as")
+    return str(preprocess_as) if preprocess_as else str(control_key)
