@@ -151,6 +151,33 @@ class CreativeStudioCLI:
         for output_type, path in result.outputs.items():
             print(f"  {output_type}: {path}")
 
+    async def voice_command(self, args):
+        """Synthesize character voice line (TTS)"""
+        print(f"\n{'='*70}")
+        print("VOICE SYNTHESIS (TTS)")
+        print(f"{'='*70}")
+        print(f"Character: {args.character}")
+        print(f"Emotion: {args.emotion} (intensity={args.intensity})")
+        print(f"Output: {args.output if args.output else '(auto)'}")
+        print(f"{'='*70}\n")
+
+        result = await self.workflows.synthesize_character_voice(
+            character=args.character,
+            text=args.text,
+            emotion=args.emotion,
+            intensity=float(args.intensity),
+            output_audio=args.output,
+        )
+
+        print(f"\n{'='*70}")
+        print("RESULT")
+        print(f"{'='*70}")
+        print(f"Success: {'✅' if result.success else '❌'}")
+        if result.success:
+            print(f"Audio: {result.outputs.get('audio')}")
+        else:
+            print(f"Error: {result.metadata.get('error')}")
+
     def list_command(self, args):
         """List available capabilities"""
         print(f"\n{'='*70}")
@@ -194,13 +221,15 @@ class CreativeStudioCLI:
             await self.parody_command(args)
         elif args.command == "analyze":
             await self.analyze_command(args)
+        elif args.command == "voice":
+            await self.voice_command(args)
         elif args.command == "workflow":
             await self.workflow_command(args)
         elif args.command == "list":
             self.list_command(args)
         else:
             print(f"Unknown command: {args.command}")
-            print("Available commands: parody, analyze, workflow, list")
+            print("Available commands: parody, analyze, voice, workflow, list")
 
 
 def main():
@@ -323,6 +352,14 @@ Examples:
 
     # List command
     list_parser = subparsers.add_parser("list", help="List capabilities")
+
+    # Voice command
+    voice_parser = subparsers.add_parser("voice", help="Synthesize character voice (TTS)")
+    voice_parser.add_argument("--character", "-c", required=True, help="Character name")
+    voice_parser.add_argument("--text", "-t", required=True, help="Text to synthesize")
+    voice_parser.add_argument("--emotion", "-e", default="neutral", help="Emotion preset")
+    voice_parser.add_argument("--intensity", type=float, default=0.8, help="Emotion intensity (default: 0.8)")
+    voice_parser.add_argument("--output", "-o", help="Output WAV path (default: auto under outputs/creative_studio/voice)")
 
     args = parser.parse_args()
 

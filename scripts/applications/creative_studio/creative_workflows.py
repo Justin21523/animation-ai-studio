@@ -111,6 +111,73 @@ class CreativeWorkflows:
 
         logger.info("CreativeWorkflows initialized")
 
+    async def synthesize_character_voice(
+        self,
+        character: str,
+        text: str,
+        output_audio: Optional[str] = None,
+        emotion: str = "neutral",
+        intensity: float = 0.8,
+    ) -> WorkflowResult:
+        """
+        Workflow: Synthesize Character Voice (Module 3 via ModelManager)
+
+        Produces a WAV file using the project's unified TTS adapter.
+        """
+        from scripts.core.model_management.model_manager import ModelManager
+
+        start_time = time.time()
+
+        try:
+            output_dir = Path("outputs/creative_studio/voice") / character.lower()
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_audio = output_audio or str(output_dir / f"{character.lower()}_{int(start_time)}.wav")
+
+            manager = ModelManager()
+            llm_was_running = manager.service_controller.is_llm_running()
+
+            try:
+                if llm_was_running and not manager.service_controller.stop_llm(wait=True):
+                    raise RuntimeError("Failed to stop LLM service before TTS synthesis")
+
+                with manager.use_tts(auto_unload_heavy=True) as tts:
+                    result = tts.synthesize(
+                        text=text,
+                        character=character,
+                        emotion=emotion,
+                        intensity=float(intensity),
+                        output_path=str(output_audio),
+                    )
+
+                audio_path = getattr(result, "audio_path", None) or str(output_audio)
+
+            finally:
+                if llm_was_running:
+                    manager.service_controller.start_llm(wait=True)
+
+            return WorkflowResult(
+                success=True,
+                workflow_name="synthesize_character_voice",
+                execution_time=time.time() - start_time,
+                outputs={"audio": audio_path},
+                metadata={
+                    "character": character,
+                    "text": text,
+                    "emotion": emotion,
+                    "intensity": float(intensity),
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"Voice synthesis workflow failed: {e}")
+            return WorkflowResult(
+                success=False,
+                workflow_name="synthesize_character_voice",
+                execution_time=time.time() - start_time,
+                outputs={},
+                metadata={"error": str(e), "character": character},
+            )
+
     async def create_parody_video(
         self,
         input_video: str,
@@ -320,6 +387,12 @@ class CreativeWorkflows:
                 "description": "Create funny/parody video with automatic editing",
                 "inputs": "input_video, style, target_duration",
                 "outputs": "parody_video, result_json"
+            },
+            {
+                "name": "synthesize_character_voice",
+                "description": "Synthesize character voice line (TTS)",
+                "inputs": "character, text, emotion, intensity",
+                "outputs": "audio (WAV)"
             },
             {
                 "name": "analyze_and_report",

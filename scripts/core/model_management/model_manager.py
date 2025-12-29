@@ -397,9 +397,27 @@ class ModelManager:
             return
 
         logger.info("Loading TTS model...")
+        import yaml
         from scripts.synthesis.tts.unified_tts import UnifiedTTS
 
-        self.tts_model = UnifiedTTS()
+        config_path = Path("configs/generation/tts_config.yaml")
+        config: Dict[str, Any] = {}
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f) or {}
+
+        tts_cfg = config.get("tts") or {}
+        language = str(tts_cfg.get("language", "en"))
+        backend = str(tts_cfg.get("backend", "auto")).lower()
+        cache_dir = tts_cfg.get("cache_dir")
+        prefer_device = tts_cfg.get("prefer_device")
+
+        self.tts_model = UnifiedTTS(
+            language=language,
+            prefer_device=str(prefer_device) if prefer_device else None,
+            backend=backend if backend in ("auto", "xtts", "silence") else "auto",
+            cache_dir=str(cache_dir) if cache_dir else None,
+        )
 
         logger.info("TTS model loaded")
 

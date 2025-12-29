@@ -5,7 +5,7 @@ Goal: provide a stable `synthesize(...)` API for the agent/tooling layer without
 hard-coupling to a single TTS backend.
 
 Backend selection (best-effort):
-1) Coqui TTS XTTS-v2 (if `TTS` package is available)
+1) Coqui TTS XTTS-v2 (if `TTS` + `torchaudio` are usable in this runtime)
 2) Fallback: generate silent WAV (always available)
 """
 
@@ -16,12 +16,14 @@ import wave
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 import numpy as np
 
 
 logger = logging.getLogger(__name__)
+
+TTSBackend = Literal["auto", "xtts", "silence"]
 
 
 @dataclass
@@ -44,9 +46,13 @@ class UnifiedTTS:
         self,
         language: str = "en",
         prefer_device: Optional[str] = None,
+        backend: TTSBackend = "auto",
+        cache_dir: Optional[str] = None,
     ):
         self.language = language
         self.prefer_device = prefer_device
+        self.backend_preference: TTSBackend = backend
+        self.cache_dir = Path(cache_dir) if cache_dir else Path("outputs/_cache/tts")
 
         self._backend: Optional[str] = None
         self._xtts = None
@@ -77,9 +83,15 @@ class UnifiedTTS:
         out_path = Path(output_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Prefer XTTS if installed, else fallback to silence WAV.
+        # Prefer selected backend; always fallback to silence WAV.
         if self._backend is None:
-            self._backend = "xtts" if self._can_use_xtts() else "silence"
+            preferred = self.backend_preference
+            if preferred == "silence":
+                self._backend = "silence"
+            elif preferred == "xtts":
+                self._backend = "xtts" if self._can_use_xtts() else "silence"
+            else:
+                self._backend = "xtts" if self._can_use_xtts() else "silence"
 
         try:
             if self._backend == "xtts":
@@ -95,9 +107,27 @@ class UnifiedTTS:
         safe_emotion = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in emotion)[:30]
         return str(Path("outputs/tts") / f"{safe_char}_{safe_emotion}.wav")
 
+    def _configure_cache_env(self):
+        """
+        Ensure third-party libraries that want to write caches use a workspace path.
+
+        This project frequently runs in sandboxed environments where writing to HOME
+        is disallowed; setting these prevents hard failures during import.
+        """
+        cache_root = self.cache_dir
+        cache_root.mkdir(parents=True, exist_ok=True)
+
+        # Common cache env vars (only set if not provided by user).
+        os.environ.setdefault("XDG_CACHE_HOME", str(cache_root))
+        os.environ.setdefault("NUMBA_CACHE_DIR", str(cache_root / "numba"))
+        os.environ.setdefault("JOBLIB_TEMP_FOLDER", str(cache_root / "joblib"))
+
     def _can_use_xtts(self) -> bool:
         try:
-            import TTS  # noqa: F401
+            self._configure_cache_env()
+            # Coqui TTS imports `torchaudio` internally; validate it's usable.
+            import torchaudio  # noqa: F401
+            from TTS.api import TTS  # noqa: F401
             return True
         except Exception:
             return False
@@ -106,6 +136,7 @@ class UnifiedTTS:
         if self._xtts is not None:
             return
 
+        self._configure_cache_env()
         import torch
         from TTS.api import TTS
 
@@ -204,4 +235,3 @@ class UnifiedTTS:
             duration_seconds=duration,
             success=True,
         )
-

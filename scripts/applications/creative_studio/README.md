@@ -231,6 +231,16 @@ python scripts/applications/creative_studio/cli.py analyze \
     --output analysis.json
 ```
 
+**Voice Synthesis (TTS)**:
+```bash
+python scripts/applications/creative_studio/cli.py voice \
+    --character luca \
+    --text "Silenzio, Bruno!" \
+    --emotion excited \
+    --intensity 0.9 \
+    --output outputs/creative_studio/voice/luca_excited.wav
+```
+
 **Workflows**:
 ```bash
 # Parody workflow

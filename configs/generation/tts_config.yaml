@@ -1,14 +1,30 @@
-# GPT-SoVITS TTS Configuration
+# Unified TTS Configuration (used by ModelManager/Agent/Creative Studio)
+
+tts:
+  # Choose ONE main line for production usage:
+  # - "xtts": Coqui XTTS-v2 (voice cloning via reference audio)
+  # - "auto": try XTTS then fallback to silence
+  # - "silence": always generate silent WAV (debug/fallback)
+  backend: "xtts"
+  language: "en"
+  prefer_device: null  # null = auto (cuda if available else cpu)
+  cache_dir: "outputs/_cache/tts"
+
+# -----------------------------------------------------------------------------
+# GPT-SoVITS TTS Configuration (optional: training/inference wiring)
+# NOTE: This repo currently uses XTTS as the main runtime backend. GPT-SoVITS
+# settings are kept for future integration and for training workflows.
+# -----------------------------------------------------------------------------
 
 gpt_sovits:
   # Repository and models
-  repo_path: "/mnt/c/AI_LLM_projects/ai_warehouse/tools/GPT-SoVITS"
-  models_dir: "/mnt/c/AI_LLM_projects/ai_warehouse/models/tts"
+  repo_path: "/mnt/c/ai_tools/GPT-SoVITS"
+  models_dir: "/mnt/c/ai_models/audio/gpt_sovits"
 
   # Base pretrained models
   base_models:
-    gpt: "pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
-    sovits: "pretrained_models/s2G488k.pth"
+    gpt: "pretrained/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"
+    sovits: "pretrained/s2G488k.pth"
 
   # Inference settings
   inference:
