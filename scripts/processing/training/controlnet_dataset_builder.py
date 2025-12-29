@@ -163,6 +163,11 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
         )
     )
 
+    preprocessor = None
+    if not config.control_images_dir:
+        # Fail fast for missing dependencies / missing local models.
+        preprocessor = preprocessor_factory.get(str(config.control_type))
+
     for idx, src_image_path in enumerate(tqdm(image_files, desc="Building ControlNet dataset")):
         try:
             with Image.open(src_image_path) as img:
@@ -183,7 +188,6 @@ def build_dataset(config: BuildConfig) -> Dict[str, Any]:
                     control_rgb = _ensure_rgb(cimg)
                     control_rgb = _resize_square(control_rgb, int(config.resolution))
             else:
-                preprocessor = preprocessor_factory.get(str(config.control_type))
                 control_rgb = preprocessor(
                     img_rgb,
                     detect_resolution=int(detect_resolution),
