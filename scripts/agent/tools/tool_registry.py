@@ -162,6 +162,9 @@ def create_default_tool_registry() -> ToolRegistry:
         search_style_guide,
         search_technical_parameters,
         answer_question,
+        search_video_dialogue,
+        search_video_shots,
+        search_character_reference_tracks,
     )
 
     # Image Generation Tools
@@ -338,6 +341,71 @@ def create_default_tool_registry() -> ToolRegistry:
         requires_gpu=False,
         estimated_vram_gb=0.0,
         estimated_time_seconds=1.0
+    ))
+
+    registry.register_tool(Tool(
+        name="search_video_dialogue",
+        description="Search indexed video dialogue segments (scenes/shots/lines)",
+        category=ToolCategory.KNOWLEDGE_RETRIEVAL,
+        parameters=[
+            ToolParameter("query", "string", "Query text (e.g., 'argument', 'sad line')"),
+            ToolParameter("character", "string", "Character name", required=False),
+            ToolParameter("film", "string", "Film name (e.g., luca)", required=False),
+            ToolParameter("video_id", "string", "Video identifier (stem)", required=False),
+            ToolParameter("start_time", "float", "Start time window (seconds)", required=False),
+            ToolParameter("end_time", "float", "End time window (seconds)", required=False),
+            ToolParameter("top_k", "integer", "Max results", required=False, default=8),
+        ],
+        examples=[
+            "Find Luca's excited lines in the movie",
+            "Search for arguments between characters"
+        ],
+        function=search_video_dialogue,
+        requires_gpu=False,
+        estimated_vram_gb=0.0,
+        estimated_time_seconds=0.5
+    ))
+
+    registry.register_tool(Tool(
+        name="search_video_shots",
+        description="Search indexed video shots by cinematic language (camera movement/style)",
+        category=ToolCategory.KNOWLEDGE_RETRIEVAL,
+        parameters=[
+            ToolParameter("query", "string", "Query text (e.g., 'handheld shaky pan')"),
+            ToolParameter("film", "string", "Film name (e.g., luca)", required=False),
+            ToolParameter("video_id", "string", "Video identifier (stem)", required=False),
+            ToolParameter("camera_style", "string", "Camera style filter", required=False),
+            ToolParameter("dominant_movement", "string", "Dominant movement filter", required=False),
+            ToolParameter("top_k", "integer", "Max results", required=False, default=8),
+        ],
+        examples=[
+            "Find smooth camera shots for reference",
+            "Search for handheld chaotic camera moments"
+        ],
+        function=search_video_shots,
+        requires_gpu=False,
+        estimated_vram_gb=0.0,
+        estimated_time_seconds=0.5
+    ))
+
+    registry.register_tool(Tool(
+        name="search_character_reference_tracks",
+        description="Search indexed character presence tracks for reference timestamps",
+        category=ToolCategory.KNOWLEDGE_RETRIEVAL,
+        parameters=[
+            ToolParameter("character", "string", "Character name"),
+            ToolParameter("film", "string", "Film name", required=False),
+            ToolParameter("video_id", "string", "Video identifier (stem)", required=False),
+            ToolParameter("top_k", "integer", "Max results", required=False, default=5),
+        ],
+        examples=[
+            "Find Luca reference tracks in film luca",
+            "Get Alberto reference timestamps"
+        ],
+        function=search_character_reference_tracks,
+        requires_gpu=False,
+        estimated_vram_gb=0.0,
+        estimated_time_seconds=0.5
     ))
 
     # Video Analysis Tools
