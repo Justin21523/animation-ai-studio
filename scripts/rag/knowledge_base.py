@@ -57,16 +57,19 @@ logger = logging.getLogger(__name__)
 class KnowledgeBaseConfig:
     """Configuration for knowledge base"""
     # Paths
-    persist_dir: str = "/mnt/c/AI_LLM_projects/ai_warehouse/rag/knowledge_base"
-    cache_dir: str = "/mnt/c/AI_LLM_projects/ai_warehouse/cache/embeddings"
+    persist_dir: str = "outputs/rag/knowledge_base"
+    cache_dir: str = "outputs/rag/embedding_cache"
 
     # Vector store
     vector_store_type: str = "faiss"  # faiss, chroma
-    embedding_dimension: int = 1024
+    embedding_dimension: Optional[int] = None  # inferred from embedding model
 
     # Embedding
-    embedding_model: str = "qwen-14b"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     use_cached_embeddings: bool = True
+    embedding_batch_size: int = 32
+    embedding_device: str = "cpu"
+    embedding_max_length: int = 512
 
     # Document processing
     chunk_size: int = 512
@@ -79,6 +82,14 @@ class KnowledgeBaseConfig:
     # Maintenance
     auto_save: bool = True
     save_interval: int = 100  # Save every N documents
+
+    # Bootstrap (makes KB usable out-of-the-box)
+    auto_ingest_on_empty: bool = True
+    auto_ingest_dirs: Optional[List[str]] = None  # default set in __post_init__
+
+    def __post_init__(self):
+        if self.auto_ingest_dirs is None:
+            self.auto_ingest_dirs = ["data/films", "docs"]
 
 
 class KnowledgeBase:
@@ -151,25 +162,13 @@ class KnowledgeBase:
 
         logger.info("Initializing Knowledge Base...")
 
-        # Initialize vector store
-        vector_config = VectorStoreConfig(
-            store_type=VectorStoreType(self.config.vector_store_type),
-            persist_dir=str(Path(self.config.persist_dir) / "vector_store"),
-            dimension=self.config.embedding_dimension
-        )
-        self.vector_store = VectorStoreFactory.create(vector_config)
-
-        # Load existing index if available
-        try:
-            self.vector_store.load()
-            logger.info("Loaded existing vector store")
-        except Exception as e:
-            logger.info("No existing vector store found, will create new")
-
         # Initialize embedding generator
         embedding_config = EmbeddingConfig(
             model=self.config.embedding_model,
-            dimension=self.config.embedding_dimension
+            dimension=self.config.embedding_dimension,
+            batch_size=self.config.embedding_batch_size,
+            device=self.config.embedding_device,
+            max_length=self.config.embedding_max_length,
         )
 
         if self.config.use_cached_embeddings:
@@ -181,6 +180,22 @@ class KnowledgeBase:
             self.embedding_generator = EmbeddingGenerator(config=embedding_config)
 
         await self.embedding_generator.__aenter__()
+
+        # Initialize vector store (dimension inferred from embedding model unless explicitly set)
+        inferred_dim = self.embedding_generator.get_dimension()
+        vector_config = VectorStoreConfig(
+            store_type=VectorStoreType(self.config.vector_store_type),
+            persist_dir=str(Path(self.config.persist_dir) / "vector_store"),
+            dimension=int(self.config.embedding_dimension or inferred_dim),
+        )
+        self.vector_store = VectorStoreFactory.create(vector_config)
+
+        # Load existing index if available
+        self.vector_store.load()
+        if self.vector_store.count() > 0:
+            logger.info(f"Loaded existing vector store ({self.vector_store.count()} vectors)")
+        else:
+            logger.info("No existing vector store found, will create new")
 
         # Initialize document processor
         chunking_config = ChunkingConfig(
@@ -206,6 +221,19 @@ class KnowledgeBase:
 
         # Load stats
         await self._load_stats()
+
+        # Optional bootstrap: ingest local docs if the KB is empty.
+        if self.config.auto_ingest_on_empty and self.vector_store.count() == 0:
+            try:
+                total_added = 0
+                for ingest_dir in self.config.auto_ingest_dirs or []:
+                    ingest_path = Path(ingest_dir)
+                    if ingest_path.exists():
+                        total_added += await self.add_documents_from_directory(ingest_path)
+                if total_added > 0:
+                    logger.info(f"Auto-ingested {total_added} documents into empty knowledge base")
+            except Exception as e:
+                logger.warning(f"Auto-ingest skipped/failed: {e}")
 
         self._initialized = True
         logger.info("Knowledge Base initialized successfully")

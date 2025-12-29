@@ -44,6 +44,10 @@ class StepStatus(Enum):
     SKIPPED = "skipped"
 
 
+# Backwards-compat alias (some modules still import TaskStatus)
+TaskStatus = StepStatus
+
+
 @dataclass
 class Thought:
     """

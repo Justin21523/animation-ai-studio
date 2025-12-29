@@ -147,6 +147,23 @@ def create_default_tool_registry() -> ToolRegistry:
     """Create registry with default tools"""
     registry = ToolRegistry()
 
+    # Bind concrete implementations (lazy imports inside wrappers)
+    from scripts.agent.tools.image_generation_tools import (
+        generate_character_image,
+        generate_scene_with_controlnet,
+        batch_generate_character_images,
+    )
+    from scripts.agent.tools.voice_synthesis_tools import (
+        synthesize_character_voice,
+        batch_synthesize_script,
+    )
+    from scripts.agent.tools.knowledge_retrieval_tools import (
+        search_character_knowledge,
+        search_style_guide,
+        search_technical_parameters,
+        answer_question,
+    )
+
     # Image Generation Tools
     registry.register_tool(Tool(
         name="generate_character_image",
@@ -165,6 +182,7 @@ def create_default_tool_registry() -> ToolRegistry:
             "Generate an image of Luca running on the beach",
             "Create a picture of Alberto smiling in Portorosso town square"
         ],
+        function=generate_character_image,
         requires_gpu=True,
         estimated_vram_gb=13.0,
         estimated_time_seconds=15.0
@@ -185,6 +203,7 @@ def create_default_tool_registry() -> ToolRegistry:
         examples=[
             "Generate Luca in a running pose using pose control"
         ],
+        function=generate_scene_with_controlnet,
         requires_gpu=True,
         estimated_vram_gb=14.5,
         estimated_time_seconds=20.0
@@ -204,6 +223,7 @@ def create_default_tool_registry() -> ToolRegistry:
         examples=[
             "Generate 10 consistent images of Luca on the beach"
         ],
+        function=batch_generate_character_images,
         requires_gpu=True,
         estimated_vram_gb=13.0,
         estimated_time_seconds=150.0  # 15s per image * 10
@@ -225,6 +245,7 @@ def create_default_tool_registry() -> ToolRegistry:
             "Synthesize Luca saying 'Silenzio, Bruno!' with excited emotion",
             "Generate Alberto's voice saying 'Welcome to Portorosso!' in a happy tone"
         ],
+        function=synthesize_character_voice,
         requires_gpu=True,
         estimated_vram_gb=3.5,
         estimated_time_seconds=5.0
@@ -242,6 +263,7 @@ def create_default_tool_registry() -> ToolRegistry:
         examples=[
             "Synthesize a dialogue script for Luca"
         ],
+        function=batch_synthesize_script,
         requires_gpu=True,
         estimated_vram_gb=3.5,
         estimated_time_seconds=30.0
@@ -261,6 +283,7 @@ def create_default_tool_registry() -> ToolRegistry:
             "Search for Luca's appearance details",
             "Find information about Alberto's personality"
         ],
+        function=search_character_knowledge,
         requires_gpu=False,
         estimated_vram_gb=0.0,
         estimated_time_seconds=0.5
@@ -277,6 +300,7 @@ def create_default_tool_registry() -> ToolRegistry:
             "Get the Pixar 3D style guide",
             "Find Italian summer coastal style characteristics"
         ],
+        function=search_style_guide,
         requires_gpu=False,
         estimated_vram_gb=0.0,
         estimated_time_seconds=0.5
@@ -293,6 +317,7 @@ def create_default_tool_registry() -> ToolRegistry:
         examples=[
             "Get recommended parameters for SDXL image generation"
         ],
+        function=search_technical_parameters,
         requires_gpu=False,
         estimated_vram_gb=0.0,
         estimated_time_seconds=0.5
@@ -309,18 +334,25 @@ def create_default_tool_registry() -> ToolRegistry:
             "Who is Luca's best friend?",
             "What is the setting of the film?"
         ],
+        function=answer_question,
         requires_gpu=False,
         estimated_vram_gb=0.0,
         estimated_time_seconds=1.0
     ))
 
     # Video Analysis Tools
-    from scripts.agent.tools.video_analysis_tools import register_video_analysis_tools
-    register_video_analysis_tools(registry)
+    try:
+        from scripts.agent.tools.video_analysis_tools import register_video_analysis_tools
+        register_video_analysis_tools(registry)
+    except ImportError as e:
+        logger.warning(f"Video analysis tools disabled (missing deps): {e}")
 
     # Video Editing Tools
-    from scripts.agent.tools.video_editing_tools import register_video_editing_tools
-    register_video_editing_tools(registry)
+    try:
+        from scripts.agent.tools.video_editing_tools import register_video_editing_tools
+        register_video_editing_tools(registry)
+    except ImportError as e:
+        logger.warning(f"Video editing tools disabled (missing deps): {e}")
 
     logger.info(f"Created default tool registry with {len(registry.tools)} tools")
     return registry

@@ -44,7 +44,8 @@ class ServiceController:
     """
 
     # Service endpoints
-    LLM_GATEWAY_URL = "http://localhost:8000"
+    # FastAPI gateway default (see llm_backend/README.md)
+    LLM_GATEWAY_URL = "http://localhost:7000"
     LLM_HEALTH_ENDPOINT = f"{LLM_GATEWAY_URL}/health"
 
     # Script paths (relative to project root)

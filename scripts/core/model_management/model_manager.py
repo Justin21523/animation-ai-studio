@@ -136,12 +136,18 @@ class ModelManager:
         Raises:
             RuntimeError: If a heavy model is loaded and cannot be unloaded
         """
-        if self.state.model_type == "llm":
+        # Stop LLM service if it's actually running (state may be stale).
+        if self.service_controller.is_llm_running() or self.state.model_type == "llm":
             logger.info("Stopping LLM to free VRAM...")
             if not self.service_controller.stop_llm(wait=True):
                 raise RuntimeError("Failed to stop LLM service")
+            if self.state.model_type == "llm":
+                self.state.active_model = None
+                self.state.model_type = None
+                self.state.loaded_at = None
 
-        elif self.state.model_type == "sdxl":
+        # Unload SDXL if present (in-process heavy model).
+        if self.state.model_type == "sdxl" or self.sdxl_pipeline is not None:
             logger.info("Unloading SDXL to free VRAM...")
             self.unload_sdxl()
 
@@ -174,6 +180,11 @@ class ModelManager:
         # Check if LLM is already running
         if self.service_controller.is_llm_running():
             logger.info("LLM already running")
+            # Best-effort state sync (we cannot reliably detect exact model variant here).
+            self.state.active_model = model_key
+            self.state.model_type = "llm"
+            if self.state.loaded_at is None:
+                self.state.loaded_at = time.time()
             yield
             return
 
@@ -300,22 +311,54 @@ class ModelManager:
         """
         Load SDXL pipeline
 
-        Note: This is a placeholder. Actual SDXL loading should import
-        from scripts/generation/image/sdxl_pipeline.py
+        Loads SDXLPipelineManager from `configs/generation/sdxl_config.yaml`.
         """
         if self.sdxl_pipeline is not None:
             logger.warning("SDXL already loaded")
             return
 
-        logger.info("Loading SDXL pipeline (placeholder)...")
+        from scripts.generation.image.sdxl_pipeline import SDXLPipelineManager
+        import torch
+        import yaml
 
-        # TODO: Implement actual SDXL loading
-        # from scripts.generation.image import SDXLPipelineManager
-        # self.sdxl_pipeline = SDXLPipelineManager(...)
-        # self.sdxl_pipeline.load_pipeline()
+        config_path = Path("configs/generation/sdxl_config.yaml")
+        if not config_path.exists():
+            raise FileNotFoundError(f"SDXL config not found: {config_path}")
 
-        # Placeholder
-        self.sdxl_pipeline = "SDXL_PIPELINE_PLACEHOLDER"
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f) or {}
+
+        model_cfg = config.get("model") or {}
+        device_cfg = config.get("device") or {}
+        vram_cfg = config.get("vram") or {}
+
+        model_path = model_cfg.get("base_model")
+        if not model_path:
+            raise ValueError("Missing 'model.base_model' in configs/generation/sdxl_config.yaml")
+
+        model_path_p = Path(model_path)
+        if not model_path_p.exists():
+            raise FileNotFoundError(
+                f"SDXL base model not found: {model_path_p}\n"
+                "Update configs/generation/sdxl_config.yaml:model.base_model to a valid local path."
+            )
+
+        dtype_str = str(device_cfg.get("dtype", "float16")).lower()
+        dtype = torch.float16 if dtype_str in ("float16", "fp16") else torch.float32
+        device = str(device_cfg.get("device", "cuda"))
+
+        logger.info("Loading SDXL pipeline...")
+        self.sdxl_pipeline = SDXLPipelineManager(
+            model_path=str(model_path_p),
+            device=device,
+            dtype=dtype,
+            use_sdpa=True,
+            enable_model_cpu_offload=bool(vram_cfg.get("enable_model_cpu_offload", False)),
+            enable_vae_slicing=bool(vram_cfg.get("enable_vae_slicing", True)),
+            enable_vae_tiling=bool(vram_cfg.get("enable_vae_tiling", True)),
+            variant=str(model_cfg.get("variant", "fp16")),
+        )
+        self.sdxl_pipeline.load_pipeline()
 
         logger.info("SDXL pipeline loaded")
 
@@ -327,11 +370,12 @@ class ModelManager:
 
         logger.info("Unloading SDXL pipeline...")
 
-        # TODO: Implement actual SDXL cleanup
-        # if hasattr(self.sdxl_pipeline, 'cleanup'):
-        #     self.sdxl_pipeline.cleanup()
+        try:
+            if hasattr(self.sdxl_pipeline, "unload_pipeline"):
+                self.sdxl_pipeline.unload_pipeline()
+        finally:
+            self.sdxl_pipeline = None
 
-        self.sdxl_pipeline = None
         self.vram_monitor.clear_cache()
 
         # Update state
@@ -346,21 +390,16 @@ class ModelManager:
         """
         Load TTS model
 
-        Note: This is a placeholder. Actual TTS loading will be implemented
-        in Module 3 (Voice Synthesis)
+        Loads a unified TTS adapter (prefers XTTS-v2 if available).
         """
         if self.tts_model is not None:
             logger.warning("TTS already loaded")
             return
 
-        logger.info("Loading TTS model (placeholder)...")
+        logger.info("Loading TTS model...")
+        from scripts.synthesis.tts.unified_tts import UnifiedTTS
 
-        # TODO: Implement actual TTS loading
-        # from scripts.synthesis.tts import GPTSoVITSWrapper
-        # self.tts_model = GPTSoVITSWrapper(...)
-
-        # Placeholder
-        self.tts_model = "TTS_MODEL_PLACEHOLDER"
+        self.tts_model = UnifiedTTS()
 
         logger.info("TTS model loaded")
 
@@ -372,7 +411,11 @@ class ModelManager:
 
         logger.info("Unloading TTS model...")
 
-        # TODO: Implement actual TTS cleanup
+        try:
+            if hasattr(self.tts_model, "cleanup"):
+                self.tts_model.cleanup()
+        except Exception as e:
+            logger.warning(f"TTS cleanup failed: {e}")
         self.tts_model = None
         self.vram_monitor.clear_cache()
 

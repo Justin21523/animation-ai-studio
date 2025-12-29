@@ -16,6 +16,7 @@ from dataclasses import dataclass
 import time
 import json
 import asyncio
+import inspect
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
@@ -331,42 +332,20 @@ Select tools:"""
         Execute the actual tool function
 
         This is where the real tool execution happens.
-        In a complete implementation, this would:
-        1. Load the appropriate module (image gen, voice synthesis, etc.)
-        2. Call the actual function with arguments
-        3. Return the result
-
-        For now, we return a placeholder.
         """
-        # Placeholder implementation
-        if tool.category == ToolCategory.IMAGE_GENERATION:
-            # Would call: from scripts.generation.image import CharacterGenerator
-            # generator.generate_character(**arguments)
-            return {
-                "status": "success",
-                "message": f"Would generate image with: {arguments}",
-                "output_path": "outputs/generated_image.png"
-            }
+        if tool.function is None:
+            raise NotImplementedError(
+                f"Tool '{tool.name}' has no bound function. "
+                "Attach a function in ToolRegistry (tool.function) to enable execution."
+            )
 
-        elif tool.category == ToolCategory.VOICE_SYNTHESIS:
-            # Would call: from scripts.synthesis.tts import GPTSoVITSWrapper
-            # synthesizer.synthesize(**arguments)
-            return {
-                "status": "success",
-                "message": f"Would synthesize voice with: {arguments}",
-                "output_path": "outputs/synthesized_audio.wav"
-            }
+        if inspect.iscoroutinefunction(tool.function):
+            return await tool.function(**arguments)
 
-        elif tool.category == ToolCategory.KNOWLEDGE_RETRIEVAL:
-            # Would call: RAG system
-            return {
-                "status": "success",
-                "message": f"Would retrieve knowledge with: {arguments}",
-                "results": ["Sample result 1", "Sample result 2"]
-            }
-
-        else:
-            return {"status": "success", "message": "Tool executed (placeholder)"}
+        result = await asyncio.to_thread(tool.function, **arguments)
+        if inspect.isawaitable(result):
+            return await result
+        return result
 
 
 async def main():

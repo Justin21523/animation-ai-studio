@@ -166,28 +166,32 @@ class DocumentProcessor:
         if doc_type is None:
             doc_type = self._detect_type(file_path)
 
+        # Enrich metadata from file path conventions so filters work
+        inferred_meta = self._infer_metadata_from_path(file_path)
+        merged_meta = {**inferred_meta, **(metadata or {})}
+
         # Read file content
         content = self._read_file(file_path)
 
         # Process based on type
         if doc_type == DocumentType.TEXT:
-            docs = self._process_text(content, file_path, metadata)
+            docs = self._process_text(content, file_path, merged_meta)
         elif doc_type == DocumentType.JSON:
-            docs = self._process_json(content, file_path, metadata)
+            docs = self._process_json(content, file_path, merged_meta)
         elif doc_type == DocumentType.YAML:
-            docs = self._process_yaml(content, file_path, metadata)
+            docs = self._process_yaml(content, file_path, merged_meta)
         elif doc_type == DocumentType.MARKDOWN:
-            docs = self._process_markdown(content, file_path, metadata)
+            docs = self._process_markdown(content, file_path, merged_meta)
         elif doc_type == DocumentType.CHARACTER_PROFILE:
-            docs = self._process_character_profile(content, file_path, metadata)
+            docs = self._process_character_profile(content, file_path, merged_meta)
         elif doc_type == DocumentType.SCENE_DESCRIPTION:
-            docs = self._process_scene_description(content, file_path, metadata)
+            docs = self._process_scene_description(content, file_path, merged_meta)
         elif doc_type == DocumentType.STYLE_GUIDE:
-            docs = self._process_style_guide(content, file_path, metadata)
+            docs = self._process_style_guide(content, file_path, merged_meta)
         elif doc_type == DocumentType.FILM_METADATA:
-            docs = self._process_film_metadata(content, file_path, metadata)
+            docs = self._process_film_metadata(content, file_path, merged_meta)
         else:
-            docs = self._process_text(content, file_path, metadata)
+            docs = self._process_text(content, file_path, merged_meta)
 
         logger.info(f"Processed {file_path}: {len(docs)} documents")
         return docs
@@ -195,25 +199,64 @@ class DocumentProcessor:
     def _detect_type(self, file_path: Path) -> DocumentType:
         """Auto-detect document type from file"""
         suffix = file_path.suffix.lower()
+        name = file_path.stem.lower()
+        path_str = str(file_path).lower()
 
         if suffix == ".json":
             return DocumentType.JSON
         elif suffix in [".yaml", ".yml"]:
             return DocumentType.YAML
-        elif suffix in [".md", ".markdown"]:
-            return DocumentType.MARKDOWN
-        elif suffix == ".txt":
-            # Check filename for hints
-            name = file_path.stem.lower()
-            if "character" in name:
+        elif suffix in [".md", ".markdown", ".txt"]:
+            # Check filename/path for hints (keeps filters like {"character": "luca"} working)
+            if "characters" in path_str or "character" in name:
                 return DocumentType.CHARACTER_PROFILE
-            elif "scene" in name:
+            if "scenes" in path_str or "scene" in name:
                 return DocumentType.SCENE_DESCRIPTION
-            elif "style" in name:
+            if "styles" in path_str or "style" in name:
                 return DocumentType.STYLE_GUIDE
-            return DocumentType.TEXT
+            return DocumentType.MARKDOWN if suffix in [".md", ".markdown"] else DocumentType.TEXT
         else:
             return DocumentType.TEXT
+
+    def _infer_metadata_from_path(self, file_path: Path) -> Dict[str, Any]:
+        """
+        Infer metadata from common project path conventions.
+
+        Examples:
+        - data/films/luca/characters/character_luca.md -> {"film": "luca", "character": "luca"}
+        """
+        meta: Dict[str, Any] = {}
+        parts = [p.lower() for p in file_path.parts]
+
+        # Film: .../films/<film>/...
+        if "films" in parts:
+            idx = parts.index("films")
+            if idx + 1 < len(parts):
+                meta["film"] = parts[idx + 1]
+
+        # Character: .../characters/<file>
+        if "characters" in parts:
+            stem = file_path.stem
+            for prefix in ("character_", "profile_", "char_"):
+                if stem.lower().startswith(prefix):
+                    stem = stem[len(prefix):]
+                    break
+            if stem:
+                meta["character"] = stem.lower()
+                meta["character_name"] = stem
+
+        # Style: .../styles/<file>
+        if "styles" in parts:
+            stem = file_path.stem
+            for prefix in ("style_",):
+                if stem.lower().startswith(prefix):
+                    stem = stem[len(prefix):]
+                    break
+            if stem:
+                meta["style"] = stem.lower()
+                meta["style_name"] = stem
+
+        return meta
 
     def _read_file(self, file_path: Path) -> str:
         """Read file content"""
@@ -389,7 +432,15 @@ class DocumentProcessor:
             character_name = source_path.stem
             character_description = content
 
-        doc_id = self._generate_doc_id(character_description, {"character": character_name})
+        # Prefer inferred metadata for stable IDs and filter keys
+        inferred_name = (metadata or {}).get("character_name") or (metadata or {}).get("character")
+        if inferred_name:
+            character_name = str(inferred_name)
+
+        character_key = (metadata or {}).get("character") or character_name
+        character_key = str(character_key).strip()
+
+        doc_id = self._generate_doc_id(character_description, {"character": character_key})
 
         return [Document(
             doc_id=doc_id,
@@ -397,6 +448,7 @@ class DocumentProcessor:
             doc_type=DocumentType.CHARACTER_PROFILE,
             metadata={
                 **(metadata or {}),
+                "character": character_key.lower(),
                 "character_name": character_name,
                 "source_file": str(source_path)
             },
