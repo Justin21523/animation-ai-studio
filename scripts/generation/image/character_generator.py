@@ -99,6 +99,7 @@ class CharacterGenerator:
         self.sdxl_manager: Optional[SDXLPipelineManager] = None
         self.lora_manager: Optional[LoRAManager] = None
         self.controlnet_manager: Optional[ControlNetPipelineManager] = None
+        self.controlnet_lora_manager: Optional[LoRAManager] = None
 
         self.current_mode: Optional[str] = None  # "sdxl" or "controlnet"
 
@@ -172,8 +173,11 @@ class CharacterGenerator:
 
         self.controlnet_manager.load_pipeline()
 
-        # Note: LoRA not yet supported with ControlNet in this implementation
-        # Future enhancement: integrate LoRA with ControlNet pipeline
+        # Initialize LoRA manager for ControlNet pipeline
+        self.controlnet_lora_manager = LoRAManager(
+            pipeline=self.controlnet_manager.pipeline,
+            registry=self.lora_registry
+        )
 
         self.current_mode = "controlnet"
 
@@ -260,11 +264,17 @@ class CharacterGenerator:
             Generated PIL.Image
         """
         # Build prompt
+        character_lora_config = self.lora_registry.get_character_lora(character)
+        include_trigger_words = bool(
+            character_lora_config and
+            character_lora_config.trigger_words and
+            Path(character_lora_config.path).exists()
+        )
         prompt = self._build_prompt(
             character=character,
             scene_description=scene_description,
             style=style,
-            include_trigger_words=not use_controlnet  # Don't use trigger words with ControlNet for now
+            include_trigger_words=include_trigger_words
         )
 
         # Get negative prompt
@@ -279,6 +289,42 @@ class CharacterGenerator:
             # Initialize ControlNet pipeline
             self._initialize_controlnet(control_type)
 
+            # Apply quality preset to ControlNet generation
+            num_inference_steps = 30
+            guidance_scale = 7.5
+            try:
+                preset = self.sdxl_config.get("generation", {}).get("quality_presets", {}).get(quality_preset)
+                if preset:
+                    num_inference_steps = int(preset.get("steps", num_inference_steps))
+                    guidance_scale = float(preset.get("cfg_scale", guidance_scale))
+            except Exception:
+                pass
+
+            # Load character LoRA (best-effort)
+            if self.controlnet_lora_manager is None:
+                self.controlnet_lora_manager = LoRAManager(
+                    pipeline=self.controlnet_manager.pipeline,
+                    registry=self.lora_registry
+                )
+
+            try:
+                self.controlnet_lora_manager.load_lora(character)
+            except FileNotFoundError as e:
+                print(f"WARNING: Character LoRA not found, generating without LoRA: {e}")
+            except Exception as e:
+                print(f"WARNING: Failed to load character LoRA, generating without LoRA: {e}")
+
+            # Load additional LoRAs if specified (best-effort)
+            if additional_loras:
+                for lora_config in additional_loras:
+                    try:
+                        self.controlnet_lora_manager.load_lora(
+                            lora_name=lora_config["name"],
+                            weight=lora_config.get("weight")
+                        )
+                    except Exception as e:
+                        print(f"WARNING: Failed to load LoRA '{lora_config.get('name')}', skipping: {e}")
+
             # Generate with ControlNet
             image = self.controlnet_manager.generate(
                 prompt=prompt,
@@ -286,25 +332,39 @@ class CharacterGenerator:
                 negative_prompt=negative_prompt,
                 width=width,
                 height=height,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
                 controlnet_conditioning_scale=controlnet_scale,
                 seed=seed,
                 output_path=output_path
             )
+
+            # Unload LoRAs
+            if self.controlnet_lora_manager is not None:
+                self.controlnet_lora_manager.unload_all_loras()
 
         else:
             # Initialize SDXL pipeline
             self._initialize_sdxl()
 
             # Load character LoRA
-            self.lora_manager.load_lora(character)
+            try:
+                self.lora_manager.load_lora(character)
+            except FileNotFoundError as e:
+                print(f"WARNING: Character LoRA not found, generating without LoRA: {e}")
+            except Exception as e:
+                print(f"WARNING: Failed to load character LoRA, generating without LoRA: {e}")
 
             # Load additional LoRAs if specified
             if additional_loras:
                 for lora_config in additional_loras:
-                    self.lora_manager.load_lora(
-                        lora_name=lora_config["name"],
-                        weight=lora_config.get("weight")
-                    )
+                    try:
+                        self.lora_manager.load_lora(
+                            lora_name=lora_config["name"],
+                            weight=lora_config.get("weight")
+                        )
+                    except Exception as e:
+                        print(f"WARNING: Failed to load LoRA '{lora_config.get('name')}', skipping: {e}")
 
             # Generate with SDXL + LoRA
             image = self.sdxl_manager.generate(

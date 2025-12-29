@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from PIL import Image
 import numpy as np
 import time
+import yaml
 
 try:
     from diffusers import (
@@ -63,7 +64,7 @@ class ControlNetPipelineManager:
     - Only ONE heavy model at a time
     """
 
-    CONTROLNET_MODELS = {
+    DEFAULT_CONTROLNET_MODELS = {
         "pose": "diffusers/controlnet-openpose-sdxl-1.0",
         "canny": "diffusers/controlnet-canny-sdxl-1.0",
         "depth": "diffusers/controlnet-depth-sdxl-1.0",
@@ -76,6 +77,8 @@ class ControlNetPipelineManager:
         sdxl_model_path: str,
         control_type: str = "pose",
         controlnet_model_path: Optional[str] = None,
+        controlnet_config_path: str = "configs/generation/controlnet_config.yaml",
+        prefer_local_path: bool = True,
         device: str = "cuda",
         dtype: torch.dtype = torch.float16,
         use_sdpa: bool = True,
@@ -106,16 +109,14 @@ class ControlNetPipelineManager:
         self.enable_vae_tiling = enable_vae_tiling
         self.variant = variant
 
-        # Determine ControlNet model path
-        if controlnet_model_path:
-            self.controlnet_model_path = controlnet_model_path
-        else:
-            if control_type not in self.CONTROLNET_MODELS:
-                raise ValueError(
-                    f"Unknown control_type: {control_type}. "
-                    f"Available: {list(self.CONTROLNET_MODELS.keys())}"
-                )
-            self.controlnet_model_path = self.CONTROLNET_MODELS[control_type]
+        self.controlnet_config_path = Path(controlnet_config_path)
+        self.prefer_local_path = prefer_local_path
+
+        # Determine ControlNet model path (prefer config local_path to avoid downloads)
+        self.controlnet_model_path = self._resolve_controlnet_model_path(
+            control_type=control_type,
+            override_path=controlnet_model_path,
+        )
 
         self.pipeline: Optional[StableDiffusionXLControlNetPipeline] = None
         self.is_loaded = False
@@ -127,6 +128,39 @@ class ControlNetPipelineManager:
                 "CRITICAL: use_sdpa must be True. "
                 "PyTorch 2.7.0 SDPA is REQUIRED. xformers is FORBIDDEN."
             )
+
+    def _resolve_controlnet_model_path(self, control_type: str, override_path: Optional[str]) -> str:
+        if override_path:
+            return override_path
+
+        # 1) Prefer local_path from config for offline/reproducible runs.
+        if self.controlnet_config_path.exists():
+            try:
+                with open(self.controlnet_config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f) or {}
+
+                models_cfg = cfg.get("controlnet_models") or {}
+                entry = models_cfg.get(control_type) or {}
+                local_path = entry.get("local_path")
+                model_id = entry.get("model_id") or entry.get("model")
+
+                if self.prefer_local_path and local_path:
+                    local_path_p = Path(str(local_path))
+                    if local_path_p.exists():
+                        return str(local_path_p)
+
+                if model_id:
+                    return str(model_id)
+            except Exception as e:
+                print(f"WARNING: Failed to read ControlNet config {self.controlnet_config_path}: {e}")
+
+        # 2) Fallback to hardcoded model IDs.
+        if control_type not in self.DEFAULT_CONTROLNET_MODELS:
+            raise ValueError(
+                f"Unknown control_type: {control_type}. "
+                f"Available: {list(self.DEFAULT_CONTROLNET_MODELS.keys())}"
+            )
+        return self.DEFAULT_CONTROLNET_MODELS[control_type]
 
     def load_pipeline(self) -> StableDiffusionXLControlNetPipeline:
         """
@@ -165,13 +199,31 @@ class ControlNetPipelineManager:
 
             # Load SDXL pipeline with ControlNet
             print(f"Loading SDXL base model: {self.sdxl_model_path}")
-            self.pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
-                str(self.sdxl_model_path),
-                controlnet=controlnet,
-                torch_dtype=self.dtype,
-                variant=self.variant,
-                use_safetensors=True
-            )
+            if self.sdxl_model_path.is_file():
+                # Single-file checkpoint (.safetensors/.ckpt)
+                try:
+                    self.pipeline = StableDiffusionXLControlNetPipeline.from_single_file(
+                        str(self.sdxl_model_path),
+                        controlnet=controlnet,
+                        torch_dtype=self.dtype,
+                        use_safetensors=True
+                    )
+                except TypeError:
+                    # Some diffusers versions accept different kwargs; retry with minimal args.
+                    self.pipeline = StableDiffusionXLControlNetPipeline.from_single_file(
+                        str(self.sdxl_model_path),
+                        controlnet=controlnet,
+                        torch_dtype=self.dtype,
+                    )
+            else:
+                # HuggingFace diffusers directory
+                self.pipeline = StableDiffusionXLControlNetPipeline.from_pretrained(
+                    str(self.sdxl_model_path),
+                    controlnet=controlnet,
+                    torch_dtype=self.dtype,
+                    variant=self.variant,
+                    use_safetensors=True
+                )
 
             # CRITICAL: Enable attention optimizations
             self.pipeline.enable_attention_slicing()
