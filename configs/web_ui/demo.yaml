@@ -1,0 +1,52 @@
+# Animation AI Studio Web UI demo configuration.
+# Safe for portfolio demos: repo-local SQLite, repo-local outputs, no GPU pipeline execution.
+
+demo_mode: true
+
+server:
+  host: "127.0.0.1"
+  port: 8100
+  reload: false
+  workers: 1
+
+database:
+  path: "outputs/demo/web_ui/workflows.db"
+
+executor:
+  max_workers: 2
+  retry_policy:
+    max_retries: 0
+    retry_delay: 1
+
+conda:
+  env_name: "ai_env"
+
+paths:
+  project_root: "."
+  scripts_root: "scripts"
+  outputs_root: "outputs/demo"
+  extracted_root: "outputs/demo/extracted"
+  results_roots:
+    - "outputs/demo"
+
+environment:
+  HF_HOME: "outputs/demo/_cache/huggingface"
+  TRANSFORMERS_CACHE: "outputs/demo/_cache/huggingface"
+  TORCH_HOME: "outputs/demo/_cache/torch"
+  XDG_CACHE_HOME: "outputs/demo/_cache"
+
+cpu_pipeline:
+  default_workers: 4
+  max_workers: 8
+
+gpu_pipeline:
+  sam2_model: "base"
+  llm_model: "qwen-vl-7b"
+  enable_voice: false
+
+resources:
+  max_concurrent_jobs: 1
+  cpu_threshold_percent: 90
+  ram_threshold_gb: 50
+  disk_threshold_percent: 85
+  gpu_vram_threshold_percent: 80
