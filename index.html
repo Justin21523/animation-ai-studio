@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animation AI Studio | Portfolio Demo</title>
+    <meta
+      name="description"
+      content="Animation AI Studio is a portfolio-ready AI animation workflow platform with job orchestration, demo scenarios, system monitoring, and artifact browsing."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top">Animation AI Studio</a>
+      <nav aria-label="Demo sections">
+        <a href="#scenarios">Scenarios</a>
+        <a href="#media">Media</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#walkthrough">Walkthrough</a>
+        <a href="#run">Run</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker">Portfolio Demo Platform</p>
+          <h1>AI animation workflow studio for shot planning, generation jobs, monitoring, and review.</h1>
+          <p class="lead">
+            This project turns a research-heavy AI animation codebase into a demoable product surface:
+            queued jobs, mock-safe sample data, result artifacts, health checks, and an interview-ready
+            walkthrough that can run without private API keys or GPU hardware.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#run">Start local demo</a>
+            <a class="button secondary" href="https://github.com/Justin21523/animation-ai-studio" target="_blank" rel="noreferrer">GitHub repo</a>
+          </div>
+        </div>
+
+        <div class="product-shot" aria-label="Demo dashboard preview">
+          <div class="window-bar">
+            <span></span><span></span><span></span>
+            <strong>Web UI demo</strong>
+          </div>
+          <div class="dashboard-grid">
+            <div class="metric">
+              <b>4</b>
+              <span>seeded scenarios</span>
+            </div>
+            <div class="metric green">
+              <b>100%</b>
+              <span>demo-safe flow</span>
+            </div>
+            <div class="metric coral">
+              <b>SSE</b>
+              <span>live progress</span>
+            </div>
+          </div>
+          <div class="job-row complete">
+            <span>Shot Planning</span>
+            <strong>Completed</strong>
+          </div>
+          <div class="job-row running">
+            <span>Live Monitoring</span>
+            <strong>Running</strong>
+          </div>
+          <div class="job-row failed">
+            <span>Failure Handling</span>
+            <strong>Documented</strong>
+          </div>
+          <div class="timeline">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats-strip" aria-label="Demo readiness summary">
+        <div><strong>FastAPI</strong><span>backend API</span></div>
+        <div><strong>SQLite</strong><span>local job store</span></div>
+        <div><strong>Vanilla JS</strong><span>static frontend</span></div>
+        <div><strong>GitHub Pages</strong><span>portfolio site</span></div>
+      </section>
+
+      <section id="media" class="section media-section">
+        <div class="section-heading">
+          <p class="kicker">Screenshots And Demo Video</p>
+          <h2>Public media assets for interview review.</h2>
+          <p>
+            These screenshots are captured from the runnable local demo mode. The video is a short reel
+            of the portfolio page, seeded job dashboard, result browser, and system monitor.
+          </p>
+        </div>
+
+        <div class="demo-video-frame">
+          <video
+            controls
+            preload="metadata"
+            poster="./assets/screenshots/webui-jobs.png"
+            src="./assets/video/demo-walkthrough.webm"
+          ></video>
+        </div>
+
+        <div class="screenshot-grid">
+          <figure>
+            <img src="./assets/screenshots/webui-jobs.png" alt="Seeded Web UI job dashboard with completed, running, and failed demo scenarios" />
+            <figcaption>Job dashboard with seeded demo scenarios</figcaption>
+          </figure>
+          <figure>
+            <img src="./assets/screenshots/webui-results.png" alt="Result browser showing demo output folders" />
+            <figcaption>Result browser for generated artifacts</figcaption>
+          </figure>
+          <figure>
+            <img src="./assets/screenshots/webui-system.png" alt="System monitor showing CPU, RAM, GPU, disk, and usage chart" />
+            <figcaption>System monitor and realtime metrics</figcaption>
+          </figure>
+          <figure>
+            <img src="./assets/screenshots/portfolio-landing.png" alt="Portfolio landing page for Animation AI Studio" />
+            <figcaption>GitHub Pages portfolio landing page</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="scenarios" class="section">
+        <div class="section-heading">
+          <p class="kicker">Demo Scenarios</p>
+          <h2>Built for screenshots and a 3-minute interview walkthrough.</h2>
+        </div>
+        <div class="scenario-grid">
+          <article class="panel">
+            <h3>Shot Planning</h3>
+            <p>Shows project-to-shot thinking, manifests, prompt strategy, and reviewable production artifacts.</p>
+            <span>Screenshot: job details + summary artifact</span>
+          </article>
+          <article class="panel">
+            <h3>Provider Routing</h3>
+            <p>Demonstrates how image/video generation providers are abstracted behind workflow-ready jobs.</p>
+            <span>Screenshot: provider job + gallery output</span>
+          </article>
+          <article class="panel">
+            <h3>Live Monitoring</h3>
+            <p>Displays queue state, progress stages, logs, and CPU/RAM/GPU monitoring through FastAPI.</p>
+            <span>Recording: submit job, watch progress</span>
+          </article>
+          <article class="panel">
+            <h3>Failure Handling</h3>
+            <p>Makes external runtime gaps explicit, with clear error states instead of silent broken flows.</p>
+            <span>Screenshot: failed job + stderr log</span>
+          </article>
+        </div>
+      </section>
+
+      <section id="architecture" class="section architecture">
+        <div class="section-heading">
+          <p class="kicker">Architecture</p>
+          <h2>Local-first full-stack demo with clear extension points.</h2>
+        </div>
+        <div class="architecture-map">
+          <div>
+            <h3>Frontend</h3>
+            <p>Static Web UI with dashboards, job pages, result browser, and system monitor.</p>
+          </div>
+          <div>
+            <h3>API</h3>
+            <p>FastAPI service exposing health, jobs, stats, results, action, image, and monitoring endpoints.</p>
+          </div>
+          <div>
+            <h3>Data</h3>
+            <p>SQLite job database plus repo-local demo outputs under <code>outputs/demo</code>.</p>
+          </div>
+          <div>
+            <h3>Pipeline</h3>
+            <p>Demo mode produces deterministic artifacts; full mode can hand off to existing batch scripts.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="walkthrough" class="section split">
+        <div>
+          <p class="kicker">Recording Flow</p>
+          <h2>Recommended demo script</h2>
+          <ol class="steps">
+            <li>Open the Web UI dashboard and point out seeded job states.</li>
+            <li>Browse a completed scenario and show summary, gallery, and quality artifacts.</li>
+            <li>Submit a demo-mode job and watch the status/progress update.</li>
+            <li>Open system monitoring to explain the production-readiness surface.</li>
+            <li>Close with architecture: static frontend, FastAPI, SQLite, repo-local artifacts.</li>
+          </ol>
+        </div>
+        <div class="highlight-box">
+          <h3>Interview signal</h3>
+          <p>
+            The project is intentionally framed as an orchestration platform, not just a model script.
+            It highlights product thinking, failure-mode handling, API design, data modeling, and
+            deployable portfolio presentation.
+          </p>
+        </div>
+      </section>
+
+      <section id="run" class="section runbook">
+        <div class="section-heading">
+          <p class="kicker">Run Locally</p>
+          <h2>Demo mode does not require private keys, model weights, or GPU access.</h2>
+        </div>
+        <pre><code>python scripts/demo/seed_demo_data.py --reset
+WEB_UI_CONFIG_PATH=configs/web_ui/demo.yaml \
+  python -m uvicorn web_ui.backend.main:app --host 127.0.0.1 --port 8000</code></pre>
+        <p>
+          Open <code>http://127.0.0.1:8000</code>. The static portfolio page is deployable through GitHub Pages from
+          <code>portfolio-web/</code>; the interactive API demo should use Vercel, Render, Railway, or a VM because it
+          needs a running FastAPI process.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
